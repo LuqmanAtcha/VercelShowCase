@@ -1,3 +1,4 @@
+// src/App.tsx
 import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { Header } from "./components/Header.tsx";
@@ -20,20 +21,53 @@ const App: React.FC = () => {
   );
   const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitMessage, setSubmitMessage] = useState<string | null>(null);
 
   // helper functions
   const addQuestion = () => {
-    /* …your code… */
+    const last = questions[questions.length - 1];
+    const newQuestion: Question = {
+      id: uuidv4(),
+      question: "",
+      category: last.category,
+      level: last.level,
+    };
+    setQuestions([...questions, newQuestion]);
+    setCurrentIndex(questions.length);
   };
+
   const deleteQuestion = (index: number) => {
-    /* … */
+    if (questions.length > 1) {
+      const updated = questions.filter((_, i) => i !== index);
+      setQuestions(updated);
+      setCurrentIndex(Math.min(index, updated.length - 1));
+    }
   };
+
   const updateQuestion = (field: keyof Question, value: string) => {
-    /* … */
+    const updated = [...questions];
+    updated[currentIndex] = { ...updated[currentIndex], [field]: value };
+    setQuestions(updated);
   };
+
   const handleSubmit = async () => {
-    /* … */
+    setIsSubmitting(true);
+    try {
+      // remove old surveys
+      await fetch(`${API}/api/surveys`, { method: "DELETE" });
+      // publish new
+      const res = await fetch(`${API}/api/surveys`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questions: questions.filter((q) => q.question.trim() !== ""),
+        }),
+      });
+      if (!res.ok) throw new Error(res.statusText);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // derived values
