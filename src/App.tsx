@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
+
 
 interface Question {
   id: string;
@@ -11,8 +13,9 @@ interface Question {
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 const App: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([
-    { id: "1", question: "", category: "", level: "" },
-  ]);
+  { id: uuidv4(), question: "", category: "", level: "" },
+]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [formTitle, setFormTitle] = useState("Sanskrit Language Survey");
   const [formDescription, setFormDescription] = useState(
@@ -23,29 +26,26 @@ const App: React.FC = () => {
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
 
   const current = questions[currentIndex];
+const addQuestion = () => {
+  const last = questions[questions.length - 1];
+  const newQuestion: Question = {
+    id: uuidv4(),
+    question: "",
+    category: last.category,  // pre-fill with last selection
+    level: last.level,        // pre-fill with last selection
+  };
+  setQuestions([...questions, newQuestion]);
+  setCurrentIndex(questions.length);
+};
 
-  const addQuestion = () => {
-    const newId = (questions.length + 1).toString();
-    setQuestions([
-      ...questions,
-      { id: newId, question: "", category: "", level: "" },
-    ]);
-    setCurrentIndex(questions.length);
-  };
-  const deleteQuestion = (index: number) => {
-    if (questions.length > 1) {
-      // 1) remove the item
-      let updated = questions.filter((_, i) => i !== index);
-      // 2) reassign ids 1,2,3…
-      updated = updated.map((q, i) => ({
-        ...q,
-        id: (i + 1).toString(),
-      }));
-      setQuestions(updated);
-      // 3) fix currentIndex
-      setCurrentIndex(Math.min(index, updated.length - 1));
-    }
-  };
+ const deleteQuestion = (index: number) => {
+  if (questions.length > 1) {
+    const updated = questions.filter((_, i) => i !== index);
+    setQuestions(updated);
+    setCurrentIndex(Math.min(index, updated.length - 1));
+  }
+};
+
 
   const updateQuestion = (field: keyof Question, value: string) => {
     const updated = [...questions];
