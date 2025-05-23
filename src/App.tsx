@@ -145,7 +145,7 @@ const SurveyPage: React.FC = () => {
   }, []);
 
   const handleLogout = useCallback(() => {
-    navigate("/");
+    navigate("/sbna-gameshow-form");
   }, [navigate]);
 
   const handlePreview = useCallback(() => setShowPreview(true), []);
