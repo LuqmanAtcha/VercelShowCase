@@ -10,7 +10,7 @@ import { Question } from "./type";
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const App: React.FC = () => {
-  // state hooks
+  
   const [questions, setQuestions] = useState<Question[]>([
     { id: uuidv4(), question: "", category: "", level: "" },
   ]);
@@ -22,7 +22,6 @@ const App: React.FC = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // helper functions
   const addQuestion = () => {
     const last = questions[questions.length - 1];
     const newQuestion: Question = {
