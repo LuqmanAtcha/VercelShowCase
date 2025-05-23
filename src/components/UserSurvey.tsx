@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000"; // adjust if needed
 
@@ -25,7 +25,7 @@ const UserSurvey: React.FC = () => {
   // Answer state
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<string[]>([]);
-  const [view, setView] = useState<'survey' | 'preview'>('survey');
+  const [view, setView] = useState<"survey" | "preview">("survey");
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
   const [showSavePrompt, setShowSavePrompt] = useState(false);
   const [showSavedMessage, setShowSavedMessage] = useState(false);
@@ -40,9 +40,10 @@ const UserSurvey: React.FC = () => {
       try {
         const res = await fetch(`${API}/api/v1/questions/?page=1`);
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to fetch questions");
+        if (!res.ok)
+          throw new Error(data?.error || "Failed to fetch questions");
         setQuestions(data.data || []); // adjust field if response is shaped differently
-        setAnswers(Array((data.data || []).length).fill(''));
+        setAnswers(Array((data.data || []).length).fill(""));
       } catch (err: any) {
         setFetchError(err.message || "Could not load questions.");
       }
@@ -62,7 +63,17 @@ const UserSurvey: React.FC = () => {
       setError("Please answer the question");
       return;
     }
-    setShowSavePrompt(true);
+    // Directly save and go next without prompt
+    const updatedAnswers = [...answers];
+    updatedAnswers[index] = currentAnswer;
+    setAnswers(updatedAnswers);
+    if (index < questions.length - 1) {
+      setIndex(index + 1);
+    } else {
+      setView("preview");
+    }
+    setShowSavedMessage(true);
+    setTimeout(() => setShowSavedMessage(false), 1500);
   };
 
   const confirmSave = () => {
@@ -73,7 +84,7 @@ const UserSurvey: React.FC = () => {
     if (index < questions.length - 1) {
       setIndex(index + 1);
     } else {
-      setView('preview');
+      setView("preview");
     }
     setShowSavedMessage(true);
     setTimeout(() => setShowSavedMessage(false), 1500);
@@ -81,7 +92,7 @@ const UserSurvey: React.FC = () => {
 
   const handleSelectQuestion = (i: number) => {
     setIndex(i);
-    setView('survey');
+    setView("survey");
   };
 
   // SUBMIT USER ANSWERS TO BACKEND
@@ -110,19 +121,36 @@ const UserSurvey: React.FC = () => {
         return;
       }
       alert("Survey Submitted! Thank you.");
-      navigate('/sbna-gameshow-form');
+      navigate("/sbna-gameshow-form");
     } catch {
       alert("Network error – could not submit.");
     }
   };
 
   const handleLogout = () => {
-    navigate('/sbna-gameshow-form');
+    navigate("/sbna-gameshow-form");
   };
 
   // UI
-  if (loading) return <div className="flex items-center justify-center h-screen">Loading questions…</div>;
-  if (fetchError) return <div className="flex items-center justify-center h-screen text-red-600">{fetchError}</div>;
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading questions…
+      </div>
+    );
+  if (fetchError)
+    return (
+      <div className="flex items-center justify-center h-screen text-red-600">
+        {fetchError}
+      </div>
+    );
+  if (!questions.length) {
+    return (
+      <div className="flex items-center justify-center h-screen text-lg text-gray-700 bg-white-50">
+        Sorry, there are no surveys available right now. Please come back later!
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-purple-50">
@@ -131,20 +159,22 @@ const UserSurvey: React.FC = () => {
       {/* Sidebar */}
       <aside className="w-56 bg-white shadow-md p-6 overflow-y-auto flex flex-col justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-purple-700 mb-4">Questions</h2>
+          <h2 className="text-lg font-semibold text-purple-700 mb-4">
+            Questions
+          </h2>
           <ul className="space-y-2">
             {questions.map((q, i) => (
               <li
                 key={q._id}
                 onClick={() => handleSelectQuestion(i)}
                 className={`flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer ${
-                  index === i && view === 'survey'
-                    ? 'bg-purple-200 font-semibold'
-                    : 'hover:bg-purple-100'
+                  index === i && view === "survey"
+                    ? "bg-purple-200 font-semibold"
+                    : "hover:bg-purple-100"
                 }`}
               >
                 <span>Q{i + 1}</span>
-                {answers[i]?.trim() !== '' && (
+                {answers[i]?.trim() !== "" && (
                   <span className="w-3 h-3 bg-green-500 rounded-full"></span>
                 )}
               </li>
@@ -154,26 +184,38 @@ const UserSurvey: React.FC = () => {
         <div className="mt-4 h-2 w-full bg-purple-100 rounded">
           <div
             className="h-full bg-purple-500 rounded"
-            style={{ width: `${(answers.filter(a => a.trim() !== '').length / questions.length) * 100}%` }}
+            style={{
+              width: `${
+                (answers.filter((a) => a.trim() !== "").length /
+                  questions.length) *
+                100
+              }%`,
+            }}
           ></div>
         </div>
       </aside>
 
       {/* Main Content */}
       <main className="flex-grow flex items-center justify-center px-4">
-        {view === 'survey' ? (
+        {view === "survey" ? (
           <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-xl">
-            <h2 className="text-xl font-semibold text-center mb-2 text-gray-900">Welcome {user.name} !!</h2>
-            <h3 className="text-lg font-medium text-center mb-6 text-purple-700">Question-{index + 1}</h3>
+            <h2 className="text-xl font-semibold text-center mb-2 text-gray-900">
+              Welcome {user.name} !!
+            </h2>
+            <h3 className="text-lg font-medium text-center mb-6 text-purple-700">
+              Question-{index + 1}
+            </h3>
             <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 mb-6">
-              <p className="text-lg text-center text-gray-800">{questions[index]?.question}</p>
+              <p className="text-lg text-center text-gray-800">
+                {questions[index]?.question}
+              </p>
             </div>
             <div className="mb-2 font-medium text-gray-700">Your Answer</div>
             <input
               type="text"
               className="w-full border border-purple-200 rounded p-3 bg-orange-50 mb-6 outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300"
               value={currentAnswer}
-              onChange={e => setCurrentAnswer(e.target.value)}
+              onChange={(e) => setCurrentAnswer(e.target.value)}
               placeholder="Type your answer here"
               aria-required="true"
               aria-invalid={!!error}
@@ -183,14 +225,16 @@ const UserSurvey: React.FC = () => {
                 className="px-6 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition-colors"
                 onClick={handleSaveNext}
               >
-                {index === questions.length - 1 ? 'Preview' : 'Save and Next'}
+                {index === questions.length - 1 ? "Preview" : "Save and Next"}
               </button>
             </div>
             <div className="flex items-center justify-center mb-2">
               <div className="w-full bg-gray-200 rounded-full h-2 max-w-xs">
-                <div 
-                  className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
-                  style={{ width: `${((index + 1) / questions.length) * 100}%` }}
+                <div
+                  className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${((index + 1) / questions.length) * 100}%`,
+                  }}
                 />
               </div>
             </div>
@@ -217,11 +261,15 @@ const UserSurvey: React.FC = () => {
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-xl text-center">
-            <h2 className="text-xl font-bold text-purple-700 mb-6">Preview Your Answers</h2>
+            <h2 className="text-xl font-bold text-purple-700 mb-6">
+              Preview Your Answers
+            </h2>
             <ul className="text-left mb-6 space-y-4">
               {questions.map((q, i) => (
                 <li key={q._id}>
-                  <p className="font-medium text-gray-800">Q{i + 1}. {q.question}</p>
+                  <p className="font-medium text-gray-800">
+                    Q{i + 1}. {q.question}
+                  </p>
                   <p className="text-purple-700 ml-4">Ans: {answers[i]}</p>
                 </li>
               ))}
@@ -233,7 +281,7 @@ const UserSurvey: React.FC = () => {
               Publish
             </button>
             <button
-              onClick={() => setView('survey')}
+              onClick={() => setView("survey")}
               className="bg-gray-300 hover:bg-gray-400 text-black px-6 py-2 rounded"
             >
               Back to Survey

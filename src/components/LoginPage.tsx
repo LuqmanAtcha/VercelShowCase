@@ -86,7 +86,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onParticipant, onAdmin, adminErro
               placeholder={tab === 'participant' ? "Your Name" : "Admin Name"}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               autoComplete="name"
-              disabled={false}
+              disabled={tab === 'participant' && anonymous}
+
             />
           </div>
           {tab === 'admin' && (

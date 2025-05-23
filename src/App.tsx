@@ -134,15 +134,29 @@ const SurveyPage: React.FC = () => {
     [currentIndex]
   );
 
-  // MOCKED "Publish" - no backend, just a spinner and close preview
-  const handlePublish = useCallback(async () => {
-    setIsSubmitting(true);
-    setError("");
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setShowPreview(false);
-    }, 900);
-  }, []);
+ const API = process.env.REACT_APP_API_URL;
+const handlePublish = async () => {
+  try {
+    const res = await fetch(`${process.env.REACT_APP_API_URL}/api/v1/questions/surveyQuestions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(questions) // send your current questions array
+    });
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data)) {
+      setQuestions(data.data); // <-- Use backend's returned questions (with UUID _id)
+      alert("Survey published! IDs now match the backend.");
+      // Optionally, close preview/modal, reset, etc.
+    } else {
+      alert("Failed to publish survey.");
+    }
+  } catch (err) {
+    alert("Network error while publishing survey.");
+  }
+};
+
+
+
 
   const handleLogout = useCallback(() => {
     navigate("/");
