@@ -1,3 +1,4 @@
+// src/components/admin/Header.tsx
 import React from "react";
 
 interface HeaderProps {
@@ -6,6 +7,7 @@ interface HeaderProps {
   onPreview(): void;
   onPublish(): void;
   isPublishing: boolean;
+  onLogout(): void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -14,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   onPreview,
   onPublish,
   isPublishing,
+  onLogout,
 }) => (
   <div className="bg-white border-b shadow-sm">
     <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -39,6 +42,12 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
           📤 {isPublishing ? "Publishing..." : "Publish"}
+        </button>
+        <button
+          onClick={onLogout}
+          className="px-4 py-2 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          🚪 Logout
         </button>
       </div>
     </div>
