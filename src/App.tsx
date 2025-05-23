@@ -15,7 +15,7 @@ import UserSurvey from "./components/UserSurvey.tsx";
 import { Question } from "./type.ts";
 
 // SET YOUR ADMIN PASSWORD HERE:
-const ADMIN_PASSWORD = "admin123"; // <--- Change as you like
+const ADMIN_PASSWORD = "admin123";
 
 // Simple UUID generator to avoid external dependency
 const generateId = (): string => {
