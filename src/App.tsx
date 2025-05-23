@@ -25,7 +25,7 @@ const generateId = (): string => {
 const App: React.FC = () => (
   <Router>
     <Routes>
-      <Route path="/" element={<LoginWrapper />} />
+      <Route path="/sbna-gameshow-form" element={<LoginWrapper />} />
       <Route path="/participant" element={<UserSurvey />} />
       <Route path="/dashboard" element={<SurveyPage />} />
     </Routes>
@@ -202,7 +202,8 @@ const SurveyPage: React.FC = () => {
         <div className="lg:col-span-3">
           <h1 className="text-2xl font-bold">Sanskrit Language Survey</h1>
           <p className="text-gray-600 mb-4">
-            Please answer the following questions to help us understand your Sanskrit knowledge.
+            Please answer the following questions to help us understand your
+            Sanskrit knowledge.
           </p>
           {questions[currentIndex] && (
             <QuestionCard
