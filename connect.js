@@ -1,4 +1,4 @@
-require('dotenv').config();
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const app = express();
@@ -8,8 +8,12 @@ app.use(cors());
 const uri = process.env.MONGODB_URI;
 
 // Log connection attempt
-console.log("[INFO] Connecting to MongoDB with URI:", uri ? uri.substring(0, 40) + '...' : "No URI Provided");
-mongoose.connect(uri)
+console.log(
+  "[INFO] Connecting to MongoDB with URI:",
+  uri ? uri.substring(0, 40) + "..." : "No URI Provided"
+);
+mongoose
+  .connect(uri)
   .then(() => console.log("[SUCCESS] MongoDB connected!"))
   .catch((err) => {
     console.error("[ERROR] MongoDB connection error:", err);
@@ -26,14 +30,18 @@ const questionSchema = new mongoose.Schema({
   question: { type: String, required: true },
   questionType: { type: String, required: true },
   questionCategory: { type: String, required: true },
-  questionLevel: { type: String, required: true }
+  questionLevel: { type: String, required: true },
 });
 
 const Question = mongoose.model("Question", questionSchema, "questions");
 
 // Universal request logger
 app.use((req, res, next) => {
-  console.log(`[REQUEST] [${new Date().toLocaleString()}] ${req.method} ${req.originalUrl}`);
+  console.log(
+    `[REQUEST] [${new Date().toLocaleString()}] ${req.method} ${
+      req.originalUrl
+    }`
+  );
   if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
     console.log("[BODY]", JSON.stringify(req.body, null, 2));
   }
@@ -43,21 +51,25 @@ app.use((req, res, next) => {
 // GET with pagination
 app.get("/api/v1/questions", async (req, res) => {
   const page = parseInt(req.query.page) || 1;
-  const pageSize = 10;
+  const pageSize = 20;
   const skip = (page - 1) * pageSize;
-  console.log(`[DEBUG] Fetching questions: page=${page}, pageSize=${pageSize}, skip=${skip}`);
+  console.log(
+    `[DEBUG] Fetching questions: page=${page}, pageSize=${pageSize}, skip=${skip}`
+  );
 
   try {
     const [total, questions] = await Promise.all([
       Question.countDocuments(),
-      Question.find().skip(skip).limit(pageSize)
+      Question.find().skip(skip).limit(pageSize),
     ]);
-    console.log(`[SUCCESS] GET /api/v1/questions: Total=${total}, Returned=${questions.length}`);
+    console.log(
+      `[SUCCESS] GET /api/v1/questions: Total=${total}, Returned=${questions.length}`
+    );
     res.json({
       total,
       page,
       pageSize,
-      questions
+      questions,
     });
   } catch (err) {
     console.error("[ERROR] Error fetching questions:", err);
@@ -70,8 +82,13 @@ app.delete("/api/v1/questions", async (req, res) => {
   console.log("[DEBUG] DELETE /api/v1/questions request received");
   try {
     const result = await Question.deleteMany({});
-    console.log(`[SUCCESS] All questions deleted. Count: ${result.deletedCount}`);
-    res.json({ message: "All questions deleted", deletedCount: result.deletedCount });
+    console.log(
+      `[SUCCESS] All questions deleted. Count: ${result.deletedCount}`
+    );
+    res.json({
+      message: "All questions deleted",
+      deletedCount: result.deletedCount,
+    });
   } catch (err) {
     console.error("[ERROR] Error deleting all questions:", err);
     res.status(500).json({ error: err.message });
@@ -87,7 +104,13 @@ app.post("/api/v1/questions", async (req, res) => {
     console.log(`[DEBUG] Inserting ${questions.length} question(s)`);
     const saved = await Question.insertMany(questions);
     console.log(`[SUCCESS] Questions created: ${saved.length}`);
-    res.status(201).json({ message: "Questions saved.", count: saved.length, questions: saved });
+    res
+      .status(201)
+      .json({
+        message: "Questions saved.",
+        count: saved.length,
+        questions: saved,
+      });
   } catch (err) {
     console.error("[ERROR] Bulk create error:", err);
     res.status(500).json({ error: err.message });
