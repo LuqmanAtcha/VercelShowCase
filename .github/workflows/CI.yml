@@ -23,15 +23,25 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Create .env file
+        run: |
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" > .env
+          echo "REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }}" >> .env
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build project
         run: npm run build
-
+        
       - name: Test MongoDB connection
-        if: ${{ secrets.MONGODB_URI != '' }}
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL || 'http://localhost:5000' }}
-        run: node -r dotenv/config connect.js
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+        run: |
+          if [ -n "$MONGODB_URI" ]; then
+            node -r dotenv/config connect.js
+          else
+            echo "Skipping MongoDB connection test - MONGODB_URI not provided"
+            exit 0
+          fi
