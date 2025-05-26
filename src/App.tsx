@@ -13,7 +13,7 @@ import UserSurvey from "./components/UserSurvey.tsx";
 import { Question } from "./type.ts";
 
 const ADMIN_PASSWORD = "admin123";
-const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -251,6 +251,7 @@ const SurveyPage: React.FC = () => {
     }
   };
 
+  // -------------- UPDATED HERE --------------
   const handlePublish = useCallback(async () => {
     setIsSubmitting(true);
     setError("");
@@ -265,29 +266,33 @@ const SurveyPage: React.FC = () => {
       return;
     }
     try {
-  await fetch(`${API}/api/v1/questions`, { method: "DELETE" });
-  const payload = allQuestions.map((q) => ({
-    question: q.question,
-    questionType: "Input",
-    questionCategory: q.category,
-    questionLevel: q.level,
-  }));
-  const res = await fetch(`${API}/api/v1/questions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || "Publish failed");
-  alert("Survey published successfully!");
-  fetchQuestions();
-} catch (err: any) {
-  setError(err.message || "Failed to publish survey.");
-}setIsSubmitting(false);
-}, [questionsByLevel, fetchQuestions]);
-const handleLogout = useCallback(() => {
-  navigate("/sbna-gameshow-form");
-}, [navigate]);
+      await fetch(`${API}/api/v1/questions`, { method: "DELETE" });
+      const payload = allQuestions.map((q) => ({
+        question: q.question,
+        questionType: "Input",
+        questionCategory: q.category,
+        questionLevel: q.level,
+      }));
+      // --- CHANGE THIS ENDPOINT TO /surveyQuestions ---
+      const res = await fetch(`${API}/api/v1/questions/surveyQuestions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Publish failed");
+      alert("Survey published successfully!");
+      fetchQuestions();
+    } catch (err: any) {
+      setError(err.message || "Failed to publish survey.");
+    }
+    setIsSubmitting(false);
+  }, [questionsByLevel, fetchQuestions]);
+  // -------------------------------------------
+
+  const handleLogout = useCallback(() => {
+    navigate("/sbna-gameshow-form");
+  }, [navigate]);
 
   const completedCount = LEVELS.flatMap((lvl) => questionsByLevel[lvl]).filter(
     (q) => q.question.trim() && q.category && q.level
