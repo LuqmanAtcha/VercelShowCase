@@ -265,32 +265,29 @@ const SurveyPage: React.FC = () => {
       return;
     }
     try {
-      await fetch(`${API}/api/v1/questions`, { method: "DELETE" });
-      const payload = allQuestions.map((q) => ({
-        question: q.question,
-        questionType: "Input",
-        questionCategory: q.category,
-        questionLevel: q.level,
-      }));
-      const res = await fetch(`${API}/api/v1/questions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Publish failed");
-      alert("Survey published successfully!");
-      fetchQuestions();
-    } catch (err: any) {
-      setError(err.message || "Failed to publish survey.");
-    }
-    setIsSubmitting(false);
-  }, [questionsByLevel, fetchQuestions]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("isAdmin");
-    navigate("/login");
-  };
+  await fetch(`${API}/api/v1/questions`, { method: "DELETE" });
+  const payload = allQuestions.map((q) => ({
+    question: q.question,
+    questionType: "Input",
+    questionCategory: q.category,
+    questionLevel: q.level,
+  }));
+  const res = await fetch(`${API}/api/v1/questions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || "Publish failed");
+  alert("Survey published successfully!");
+  fetchQuestions();
+} catch (err: any) {
+  setError(err.message || "Failed to publish survey.");
+}setIsSubmitting(false);
+}, [questionsByLevel, fetchQuestions]);
+const handleLogout = useCallback(() => {
+  navigate("/sbna-gameshow-form");
+}, [navigate]);
 
   const completedCount = LEVELS.flatMap((lvl) => questionsByLevel[lvl]).filter(
     (q) => q.question.trim() && q.category && q.level
