@@ -9,6 +9,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Universal request logger
+app.use("/api/v1/answers", answerRoutes);
+
 app.use((req, res, next) => {
   console.log(
     `[${new Date().toLocaleString()}] ${req.method} ${req.originalUrl}`

@@ -20,7 +20,10 @@ router.put("/", async (req, res) => {
     // For each answer, push its ID into the corresponding question
     await Promise.all(
       savedAnswers.map((a) =>
-        Question.findByIdAndUpdate(a.questionId, { $push: { answers: a._id } })
+        Question.findByIdAndUpdate(
+          a.questionId,
+          { $push: { answers: a._id } }
+        )
       )
     );
 
@@ -32,5 +35,29 @@ router.put("/", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ADD THIS GET ROUTE:
+router.get("/", async (req, res) => {
+  try {
+    const answers = await Answer.find();
+    res.status(200).json({ answers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// DELETE /api/v1/answers
+router.delete("/", async (req, res) => {
+  try {
+    const result = await Answer.deleteMany({});
+    await Question.updateMany({}, { $set: { answers: [] } }); // optional
+    res.json({
+      message: "All answers deleted (and answer refs removed from questions)",
+      deletedCount: result.deletedCount,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 export default router;
