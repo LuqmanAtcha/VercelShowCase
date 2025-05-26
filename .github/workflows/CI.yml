@@ -12,9 +12,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      MONGODB_URI: ${{ secrets.MONGODB_URI }}
-      REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
 
     steps:
       - name: Checkout code
@@ -32,18 +29,18 @@ jobs:
           echo "REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }}" >> .env
           cat .env
 
+      - name: Load .env into environment
+        run: |
+          export $(cat .env | xargs)
+          echo "Loaded env vars:"
+          env | grep MONGODB_URI || true
+        shell: bash
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build project
         run: npm run build
 
-      - name: Verify env before running
-        run: |
-          echo "Printing env values"
-          echo $MONGODB_URI
-          cat .env
-
-      - name: Run connect.js with .env loaded
+      - name: Run connect.js with dotenv
         run: node -r dotenv/config connect.js
-
