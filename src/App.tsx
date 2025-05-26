@@ -9,7 +9,6 @@ import {
 
 import LoginPage from "./components/LoginPage.tsx";
 import NotFound from "./components/NotFound.tsx";
-import SurveyLayout from "./components/admin/SurveyLayout.tsx";
 import UserSurvey from "./components/UserSurvey.tsx";
 import { Question } from "./type.ts";
 
@@ -39,7 +38,6 @@ const App: React.FC = () => (
   </Router>
 );
 
-// Login logic unchanged
 const LoginWrapper: React.FC = () => {
   const navigate = useNavigate();
   const [adminLoginError, setAdminLoginError] = useState("");
@@ -90,11 +88,8 @@ const LoginWrapper: React.FC = () => {
   );
 };
 
-// --- ADMIN SURVEY PAGE with 3 LEVEL TABS ---
 // --- ADMIN SURVEY PAGE with Difficulty Switch in Dropdown ---
-
 const SurveyPage: React.FC = () => {
-  // Group questions by level for the tabs
   const [questionsByLevel, setQuestionsByLevel] = useState<
     Record<Level, Question[]>
   >({
@@ -110,7 +105,6 @@ const SurveyPage: React.FC = () => {
   });
   const [currentTab, setCurrentTab] = useState<Level>("Beginner");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>("");
 
@@ -185,7 +179,6 @@ const SurveyPage: React.FC = () => {
     };
   }, [fetchQuestions, navigate]);
 
-  // Handlers work only on the current tab/level
   const questions = questionsByLevel[currentTab];
 
   const updateTabQuestions = (updated: Question[]) => {
@@ -212,14 +205,14 @@ const SurveyPage: React.FC = () => {
     setCurrentIndex(Math.min(i, updated.length - 1));
   };
 
-  // --- MAIN: UPDATE (with level move) ---
+  // Improved: Move to another tab and set correct index
   const updateQuestion = (field: keyof Question, val: string) => {
     if (field === "level") {
-      // Move the question to another level tab
       const newLevel = val as Level;
       if (!LEVELS.includes(newLevel) || newLevel === currentTab) return;
 
       setQuestionsByLevel((prev) => {
+        // Remove from current tab
         const currentQuestions = [...prev[currentTab]];
         const [moving] = currentQuestions.splice(currentIndex, 1);
         const newQuestion = { ...moving, level: newLevel };
@@ -245,8 +238,10 @@ const SurveyPage: React.FC = () => {
 
       // Switch tab and show the newly moved question (at end of list)
       setTimeout(() => {
-        setCurrentTab(val as Level);
-        setCurrentIndex(questionsByLevel[val as Level].length); // will be last
+        setCurrentTab(newLevel);
+        setCurrentIndex(
+          questionsByLevel[newLevel].length // will be one ahead after setState, so -1
+        );
       }, 0);
     } else {
       const copy = [...questions];
@@ -284,7 +279,6 @@ const SurveyPage: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Publish failed");
-      setShowPreview(false);
       alert("Survey published successfully!");
       fetchQuestions();
     } catch (err: any) {
@@ -301,9 +295,6 @@ const SurveyPage: React.FC = () => {
   const completedCount = LEVELS.flatMap((lvl) => questionsByLevel[lvl]).filter(
     (q) => q.question.trim() && q.category && q.level
   ).length;
-
-  // For preview modal: flatten all
-  const allQuestionsFlat = LEVELS.flatMap((lvl) => questionsByLevel[lvl]);
 
   return (
     <div className="min-h-screen bg-purple-50">
@@ -431,7 +422,9 @@ const SurveyPage: React.FC = () => {
                   </label>
                   <select
                     value={questions[currentIndex].category}
-                    onChange={(e) => updateQuestion("category", e.target.value)}
+                    onChange={(e) =>
+                      updateQuestion("category", e.target.value)
+                    }
                     className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="">Choose a category</option>
@@ -473,7 +466,7 @@ const SurveyPage: React.FC = () => {
                 >
                   Clear
                 </button>
-              </div> 
+              </div>
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded p-2 flex items-center justify-center text-sm text-red-600 my-4">
                   <span className="mr-2">⚠️</span>
