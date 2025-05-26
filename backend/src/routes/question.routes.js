@@ -77,22 +77,5 @@ router.delete("/", async (req, res) => {
   }
 });
 
-// DELETE /api/v1/questions/:id (Optional: delete by ID)
-router.delete("/:id", async (req, res) => {
-  const { id } = req.params;
-  console.log(`[INFO] DELETE /api/v1/questions/${id} called`);
-  try {
-    const result = await Question.findByIdAndDelete(id);
-    if (!result) {
-      console.warn(`[WARN] Question not found: ${id}`);
-      return res.status(404).json({ message: "Question not found" });
-    }
-    console.log(`[SUCCESS] Question deleted: ${id}`);
-    res.json({ message: "Question deleted", question: result });
-  } catch (err) {
-    console.error("[ERROR] Failed to delete question:", err);
-    res.status(500).json({ error: err.message });
-  }
-});
 
 export default router;
