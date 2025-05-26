@@ -267,6 +267,7 @@ const SurveyPage: React.FC = () => {
     }
     try {
       await fetch(`${API}/api/v1/questions`, { method: "DELETE" });
+      await fetch(`${API}/api/v1/answers`, { method: "DELETE" });
       const payload = allQuestions.map((q) => ({
         question: q.question,
         questionType: "Input",
