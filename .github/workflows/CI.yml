@@ -26,8 +26,17 @@ jobs:
           node-version: '20'
           cache: npm
 
-      - name: Debug MONGODB_URI
-        run: echo "→ MONGODB_URI='${MONGODB_URI}'"
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }}
+          EOF
+
+      - name: Debug .env contents
+        run: |
+          echo "Contents of .env:"
+          sed -n '1p;2p' .env
 
       - name: Install dependencies
         run: npm ci
