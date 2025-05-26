@@ -17,7 +17,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onAdd,
   completedCount,
 }) => {
-  const progressPercentage = questions.length > 0 ? (completedCount / questions.length) * 100 : 0;
+  const progressPercentage =
+    questions.length > 0 ? (completedCount / questions.length) * 100 : 0;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-4 sticky top-6">
@@ -38,19 +39,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   onSelect(idx);
                 }
               }}
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Q{idx + 1}</span>
+                <span className="text-sm font-medium">Question {idx + 1}</span>
                 <div
                   className={`w-2 h-2 rounded-full ${
                     isCompleted ? "bg-green-500" : "bg-gray-300"
                   }`}
-                  aria-label={isCompleted ? "Question completed" : "Question incomplete"}
+                  aria-label={
+                    isCompleted ? "Question completed" : "Question incomplete"
+                  }
                 />
               </div>
               <p className="text-xs text-gray-500 truncate">

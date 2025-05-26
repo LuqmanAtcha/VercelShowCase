@@ -1,302 +1,363 @@
-// src/components/UserSurvey.tsx
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import ProficiencyLevelModal from "./proficiencyModal.tsx";
+import LogoutPromptModal from "./LogoutPromptModal.tsx";
 
-const questions = [
-  "Name a Sanskrit term for a natural element.",
-  "What is the Sanskrit word for 'Knowledge'?",
-  "Translate the word 'Sun' into Sanskrit.",
-  "What is a Sanskrit name for 'River'?"
-];
+const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+interface Question {
+  _id: string;
+  id?: string;
+  question: string;
+  questionType?: string;
+  questionCategory?: string;
+  questionLevel?: string;
+  level?: string;
+}
+
+interface AnswerObj {
+  answer: string;
+  skipped: boolean;
+}
 
 const UserSurvey: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const user = location.state?.user || { name: "Guest", isAnonymous: true };
+  const [proficiency, setProficiency] = useState<string>("");
+  const [showProficiencyModal, setShowProficiencyModal] = useState(true);
 
-  // NEW: Proficiency Popup State
-  const [proficiency, setProficiency] = useState<"Beginner" | "Intermediate" | "Advanced" | "">("");
-  const [showProficiencyPopup, setShowProficiencyPopup] = useState(true);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(''));
-  const [view, setView] = useState<'survey' | 'preview'>('survey');
-
-  // SurveyPage component states
+  const [answers, setAnswers] = useState<AnswerObj[]>([]);
+  const [view, setView] = useState<"survey" | "preview">("survey");
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
-  const [showSavePrompt, setShowSavePrompt] = useState(false);
-  const [showSavedMessage, setShowSavedMessage] = useState(false);
+
   const [currentAnswer, setCurrentAnswer] = useState("");
   const [error, setError] = useState("");
 
-  // Update current answer when index changes
+  // Only fetch questions AFTER proficiency is selected
   useEffect(() => {
-    setCurrentAnswer(answers[index] || "");
+    if (!proficiency) return;
+    setLoading(true);
+    setFetchError(null);
+    const fetchQuestions = async () => {
+      try {
+        const res = await fetch(`${API}/api/v1/questions/?page=1`);
+        const data = await res.json();
+        if (!res.ok)
+          throw new Error(data?.error || "Failed to fetch questions");
+
+        const formattedQuestions = (data.questions || []).map((q: any) => ({
+          ...q,
+          id: q._id,
+        }));
+
+        const filtered = formattedQuestions.filter(
+          (q: any) =>
+            (q.questionLevel || q.level) === proficiency
+        );
+
+        setQuestions(filtered);
+        setAnswers(Array(filtered.length).fill({ answer: "", skipped: false }));
+        setIndex(0);
+      } catch (err: any) {
+        setFetchError(err.message || "Could not load questions.");
+      }
+      setLoading(false);
+    };
+    fetchQuestions();
+  }, [proficiency]);
+
+  useEffect(() => {
+    setCurrentAnswer(answers[index]?.answer || "");
     setError("");
   }, [index, answers]);
 
   const handleSaveNext = () => {
     if (!currentAnswer.trim()) {
-      setError("Please answer the question");
+      setError("Please answer the question or use Skip.");
       return;
     }
-    setShowSavePrompt(true);
-  };
-
-  const confirmSave = () => {
-    setShowSavePrompt(false);
     const updatedAnswers = [...answers];
-    updatedAnswers[index] = currentAnswer;
+    updatedAnswers[index] = { answer: currentAnswer, skipped: false };
     setAnswers(updatedAnswers);
-
     if (index < questions.length - 1) {
       setIndex(index + 1);
     } else {
-      setView('preview');
+      setView("preview");
     }
-
-    setShowSavedMessage(true);
-    setTimeout(() => setShowSavedMessage(false), 1500);
+  };
+  const handleSkipToggle = () => {
+    const updatedAnswers = [...answers];
+    if (answers[index]?.skipped) {
+      updatedAnswers[index] = { answer: "", skipped: false };
+      setAnswers(updatedAnswers);
+    } else {
+      updatedAnswers[index] = { answer: "", skipped: true };
+      setAnswers(updatedAnswers);
+      if (index < questions.length - 1) {
+        setIndex(index + 1);
+      } else {
+        setView("preview");
+      }
+    }
   };
 
   const handleSelectQuestion = (i: number) => {
     setIndex(i);
-    setView('survey');
+    setView("survey");
   };
 
-  const handlePublish = () => {
-    alert("Survey Published! Thank you.");
+  const handlePublish = async () => {
+    const payload = {
+      user: {
+        name: user.name,
+        isAnonymous: user.isAnonymous,
+        proficiency,
+      },
+      answers: questions.map((q, i) => ({
+        questionId: q._id,
+        answer: answers[i]?.answer || "",
+        skipped: answers[i]?.skipped || false,
+      })),
+    };
+
+    try {
+      const res = await fetch(`${API}/api/v1/answers/surveyAnswers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data?.error || "Failed to submit answers");
+        return;
+      }
+      alert("Survey Submitted! Thank you.");
+      navigate("/login");
+    } catch {
+      alert("Network error – could not submit.");
+    }
   };
 
-  const handleLogout = () => {
-    navigate('/sbna-gameshow-form');
-  };
+  // --- Early returns for modal/loading/error/empty states ---
 
+  if (showProficiencyModal) {
+    return (
+      <ProficiencyLevelModal
+        show={showProficiencyModal}
+        proficiency={proficiency}
+        setProficiency={setProficiency}
+        onConfirm={() => {
+          if (proficiency) setShowProficiencyModal(false);
+        }}
+      />
+    );
+  }
+
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading questions…
+      </div>
+    );
+  if (fetchError)
+    return (
+      <div className="flex items-center justify-center h-screen text-red-600">
+        {fetchError}
+      </div>
+    );
+  if (!questions.length)
+    return (
+      <div className="flex items-center justify-center h-screen text-lg text-gray-700 bg-white-50">
+        Sorry, there are no surveys available right now. Please come back later!
+      </div>
+    );
+
+  // --- Main survey UI ---
   return (
     <>
-      {/* Proficiency Popup */}
-      {showProficiencyPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-xl max-w-xs w-full p-6 flex flex-col items-center">
-            <h2 className="text-xl font-bold mb-4 text-purple-700">Select Your Proficiency</h2>
-            <div className="flex flex-col gap-3 w-full">
-              {["Beginner", "Intermediate", "Advanced"].map((level) => (
-                <button
-                  key={level}
-                  className={`w-full px-4 py-2 rounded-lg border-2 font-semibold
-                    ${proficiency === level
-                      ? "bg-purple-600 text-white border-purple-600"
-                      : "bg-white text-purple-600 border-purple-300 hover:bg-purple-100"}
-                  `}
-                  onClick={() => setProficiency(level as "Beginner" | "Intermediate" | "Advanced")}
+      {/* Logout Confirmation Modal */}
+      <LogoutPromptModal
+        show={showLogoutPrompt}
+        onConfirm={() => {
+          setShowLogoutPrompt(false);
+          navigate("/login");
+        }}
+        onCancel={() => setShowLogoutPrompt(false)}
+      />
+
+      <div className="flex h-screen bg-purple-50">
+        {/* Sidebar */}
+        <aside className="w-56 bg-white shadow-md p-6 overflow-y-auto flex flex-col justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-purple-700 mb-4">
+              Questions
+            </h2>
+            <ul className="space-y-2">
+              {questions.map((q, i) => (
+                <li
+                  key={q._id}
+                  onClick={() => handleSelectQuestion(i)}
+                  className={`flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer ${
+                    index === i && view === "survey"
+                      ? "bg-purple-200 font-semibold"
+                      : "hover:bg-purple-100"
+                  }`}
                 >
-                  {level}
-                </button>
+                  <span>Question {i + 1}</span>
+                  {answers[i]?.skipped ? (
+                    <span className="w-3 h-3 bg-blue-400 rounded-full" title="Skipped"></span>
+                  ) : answers[i]?.answer?.trim() !== "" ? (
+                    <span className="w-3 h-3 bg-green-500 rounded-full" title="Answered"></span>
+                  ) : null}
+                </li>
               ))}
-            </div>
-            <button
-              className={`mt-6 px-6 py-2 rounded-lg bg-green-600 text-white font-semibold
-                ${!proficiency && "opacity-50 cursor-not-allowed"}`}
-              disabled={!proficiency}
-              onClick={() => setShowProficiencyPopup(false)}
-            >
-              Start Survey
-            </button>
+            </ul>
           </div>
-        </div>
-      )}
+          <div className="mt-4 h-2 w-full bg-purple-100 rounded">
+            <div
+              className="h-full bg-purple-500 rounded"
+              style={{
+                width: `${
+                  (answers.filter((a) => a.answer.trim() !== "" || a.skipped).length / questions.length) * 100
+                }%`,
+              }}
+            ></div>
+          </div>
+        </aside>
 
-      {/* Survey Page - only after proficiency chosen */}
-      {!showProficiencyPopup && (
-        <div className="flex h-screen bg-purple-50">
-          {/* Logout Confirmation Modal */}
-          {showLogoutPrompt && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-              <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6" role="dialog" aria-labelledby="logout-title">
-                <h2 id="logout-title" className="text-xl font-bold text-center mb-2 text-purple-700">Confirm Logout</h2>
-                <p className="text-gray-700 text-center mb-6">Are you sure you want to logout?</p>
-                <div className="flex justify-center gap-4">
-                  <button
-                    className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    onClick={() => setShowLogoutPrompt(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="px-4 py-2 rounded bg-red-600 text-white shadow hover:bg-red-700"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                </div>
+        {/* Main Content */}
+        <main className="flex-grow flex items-center justify-center px-4">
+          {view === "survey" ? (
+            <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-xl relative">
+              {/* Level badge top-left */}
+              <div className="absolute top-4 left-6">
+                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm">
+                  {questions[index]?.questionLevel || questions[index]?.level}
+                </span>
               </div>
-            </div>
-          )}
-
-          {/* Save Confirmation Modal */}
-          {showSavePrompt && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-              <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6" role="dialog" aria-labelledby="save-title">
-                <h2 id="save-title" className="text-xl font-bold text-center mb-2 text-purple-700">Confirm Save</h2>
-                <p className="text-gray-700 text-center mb-6">Are you sure you want to save this answer and go to the next question?</p>
-                <div className="flex justify-center gap-4">
-                  <button
-                    className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300"
-                    onClick={() => setShowSavePrompt(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="px-4 py-2 rounded bg-purple-600 text-white shadow hover:bg-purple-700"
-                    onClick={confirmSave}
-                  >
-                    Save and Next
-                  </button>
-                </div>
+              {/* Welcome top-right */}
+              <div className="absolute top-4 right-6 text-right">
+                <span className="text-base font-semibold text-gray-900 whitespace-nowrap">
+                  Welcome {user.name}!
+                </span>
               </div>
-            </div>
-          )}
-
-          {/* Success Message Toast */}
-          {showSavedMessage && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-              <div className="bg-white rounded-lg shadow-xl max-w-xs w-full p-6 flex flex-col items-center" role="alert">
-                <span className="text-green-600 text-3xl mb-2">✓</span>
-                <span className="text-lg font-semibold text-green-700">Answer Saved!</span>
+              {/* Centered Question Number */}
+              <div className="mb-8 mt-2">
+                <h2 className="text-3xl font-bold text-center text-purple-700">
+                  Question {index + 1}
+                </h2>
               </div>
-            </div>
-          )}
-
-          {/* Sidebar */}
-          <aside className="w-56 bg-white shadow-md p-6 overflow-y-auto flex flex-col justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-purple-700 mb-4">Questions</h2>
-              <ul className="space-y-2">
-                {questions.map((_, i) => (
-                  <li
-                    key={i}
-                    onClick={() => handleSelectQuestion(i)}
-                    className={`flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer ${
-                      index === i && view === 'survey'
-                        ? 'bg-purple-200 font-semibold'
-                        : 'hover:bg-purple-100'
+              {/* Question Text */}
+              <div className="mb-6 mt-2">
+                <p className="text-lg font-medium text-center text-gray-900 break-words">
+                  {questions[index]?.question}
+                </p>
+              </div>
+              {/* Answer input */}
+              <div className="mb-2 font-medium text-gray-700">Your Answer</div>
+              <input
+                type="text"
+                className="w-full border border-purple-200 rounded p-3 bg-orange-50 mb-6 outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300"
+                value={currentAnswer}
+                onChange={(e) => setCurrentAnswer(e.target.value)}
+                placeholder="Type your answer here"
+                aria-required="true"
+                aria-invalid={!!error}
+                disabled={answers[index]?.skipped}
+              />
+              <div className="flex flex-wrap justify-center mb-6 gap-4">
+                <button
+                  className="px-6 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition-colors"
+                  onClick={handleSaveNext}
+                  disabled={answers[index]?.skipped}
+                >
+                  {index === questions.length - 1 ? "Preview" : "Save and Next"}
+                </button>
+                <button
+                  className={`px-6 py-3 rounded-lg shadow transition-colors
+                    ${answers[index]?.skipped
+                      ? "bg-blue-500 text-white hover:bg-blue-600"
+                      : "bg-gray-400 text-white hover:bg-gray-500"
                     }`}
-                  >
-                    <span>Q{i + 1}</span>
-                    {answers[i]?.trim() !== '' && (
-                      <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                    )}
+                  type="button"
+                  onClick={handleSkipToggle}
+                >
+                  {answers[index]?.skipped ? "Unskip" : "Skip"}
+                </button>
+              </div>
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-full bg-gray-200 rounded-full h-2 max-w-xs">
+                  <div
+                    className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${((index + 1) / questions.length) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="text-center mb-6 text-sm text-gray-600">
+                Question {index + 1} of {questions.length}
+              </div>
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded p-2 flex items-center justify-center text-sm text-red-600 mb-4">
+                  <span className="mr-2">⚠️</span>
+                  <span>{error}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between mt-8 border-t pt-4">
+                <div className="text-xs text-gray-500 flex items-center">
+                  <span>Logged in as {user.name}</span>
+                </div>
+                <button
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 flex items-center transition-colors"
+                  onClick={() => setShowLogoutPrompt(true)}
+                >
+                  <span className="mr-2">⬅️</span> Logout
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-xl text-center">
+              <h2 className="text-xl font-bold text-purple-700 mb-6">
+                Preview Your Answers
+              </h2>
+              <ul className="text-left mb-6 space-y-4">
+                {questions.map((q, i) => (
+                  <li key={q._id}>
+                    <p className="font-medium text-gray-800">
+                      Q{i + 1}. {q.question}
+                    </p>
+                    <p className="text-purple-700 ml-4">
+                      {answers[i]?.skipped
+                        ? <span className="text-blue-600 font-bold">Skipped</span>
+                        : <>Ans: {answers[i]?.answer || <span className="text-gray-500">Not answered</span>}</>
+                      }
+                    </p>
                   </li>
                 ))}
               </ul>
+              <button
+                onClick={handlePublish}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded mr-4"
+              >
+                Publish
+              </button>
+              <button
+                onClick={() => setView("survey")}
+                className="bg-gray-300 hover:bg-gray-400 text-black px-6 py-2 rounded"
+              >
+                Back to Survey
+              </button>
             </div>
-            <div className="mt-4 h-2 w-full bg-purple-100 rounded">
-              <div
-                className="h-full bg-purple-500 rounded"
-                style={{ width: `${(answers.filter(a => a.trim() !== '').length / questions.length) * 100}% `}}
-              ></div>
-            </div>
-          </aside>
-
-          {/* Main Content */}
-          <main className="flex-grow flex items-center justify-center px-4">
-            {view === 'survey' ? (
-              <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-xl">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold">SS</span>
-                  </div>
-                </div>
-
-                <h2 className="text-xl font-semibold text-center mb-2 text-gray-900">
-                  Welcome {user.name} {!!proficiency && `(Level: ${proficiency})`}!!
-                </h2>
-                <h3 className="text-lg font-medium text-center mb-6 text-purple-700">Question-{index + 1}</h3>
-
-                <div className="bg-purple-50 p-4 rounded-lg border border-purple-100 mb-6">
-                  <p className="text-lg text-center text-gray-800">{questions[index]}</p>
-                </div>
-
-                <div className="mb-2 font-medium text-gray-700">Your Answer</div>
-                <input
-                  type="text"
-                  className="w-full border border-purple-200 rounded p-3 bg-orange-50 mb-6 outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300"
-                  value={currentAnswer}
-                  onChange={e => setCurrentAnswer(e.target.value)}
-                  placeholder="Type your answer here"
-                  aria-required="true"
-                  aria-invalid={!!error}
-                />
-
-                <div className="flex justify-center mb-6">
-                  <button
-                    className="px-6 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition-colors"
-                    onClick={handleSaveNext}
-                  >
-                    {index === questions.length - 1 ? 'Preview' : 'Save and Next'}
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-center mb-2">
-                  <div className="w-full bg-gray-200 rounded-full h-2 max-w-xs">
-                    <div 
-                      className="bg-purple-600 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${((index + 1) / questions.length) * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="text-center mb-6 text-sm text-gray-600">
-                  Question {index + 1} of {questions.length}
-                </div>
-
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded p-2 flex items-center justify-center text-sm text-red-600 mb-4">
-                    <span className="mr-2">⚠️</span>
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between mt-8 border-t pt-4">
-                  <div className="text-xs text-gray-500 flex items-center">
-                    <span>Logged in as {user.name}</span>
-                  </div>
-                  <button
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 flex items-center transition-colors"
-                    onClick={() => setShowLogoutPrompt(true)}
-                  >
-                    <span className="mr-2">⬅️</span> Logout
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-xl text-center">
-                <h2 className="text-xl font-bold text-purple-700 mb-6">Preview Your Answers</h2>
-                <ul className="text-left mb-6 space-y-4">
-                  {questions.map((q, i) => (
-                    <li key={i}>
-                      <p className="font-medium text-gray-800">Q{i + 1}. {q}</p>
-                      <p className="text-purple-700 ml-4">Ans: {answers[i]}</p>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={handlePublish}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded mr-4"
-                >
-                  Publish
-                </button>
-                <button
-                  onClick={() => setView('survey')}
-                  className="bg-gray-300 hover:bg-gray-400 text-black px-6 py-2 rounded"
-                >
-                  Back to Survey
-                </button>
-              </div>
-            )}
-          </main>
-        </div>
-      )}
+          )}
+        </main>
+      </div>
     </>
   );
 };
