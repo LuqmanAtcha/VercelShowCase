@@ -28,10 +28,8 @@ jobs:
 
       - name: Create .env file
         run: |
-          touch .env
-          echo MONGODB_URI="${{ secrets.MONGODB_URI }}" >> .env
-          echo REACT_APP_API_URL="${{ secrets.REACT_APP_API_URL }}" >> .env
-          echo ".env file created with the following content:"
+          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" > .env
+          echo "REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }}" >> .env
           cat .env
 
       - name: Install dependencies
@@ -40,5 +38,12 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Run connect.js
-        run: node connect.js
+      - name: Verify env before running
+        run: |
+          echo "Printing env values"
+          echo $MONGODB_URI
+          cat .env
+
+      - name: Run connect.js with .env loaded
+        run: node -r dotenv/config connect.js
+
