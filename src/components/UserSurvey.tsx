@@ -17,7 +17,6 @@ interface Question {
 
 interface AnswerObj {
   answer: string;
-  skipped: boolean;
 }
 
 const UserSurvey: React.FC = () => {
@@ -57,12 +56,11 @@ const UserSurvey: React.FC = () => {
         }));
 
         const filtered = formattedQuestions.filter(
-          (q: any) =>
-            (q.questionLevel || q.level) === proficiency
+          (q: any) => (q.questionLevel || q.level) === proficiency
         );
 
         setQuestions(filtered);
-        setAnswers(Array(filtered.length).fill({ answer: "", skipped: false }));
+        setAnswers(Array(filtered.length).fill({ answer: "" }));
         setIndex(0);
       } catch (err: any) {
         setFetchError(err.message || "Could not load questions.");
@@ -77,13 +75,14 @@ const UserSurvey: React.FC = () => {
     setError("");
   }, [index, answers]);
 
+  // Save/Next logic
   const handleSaveNext = () => {
     if (!currentAnswer.trim()) {
       setError("Please answer the question or use Skip.");
       return;
     }
     const updatedAnswers = [...answers];
-    updatedAnswers[index] = { answer: currentAnswer, skipped: false };
+    updatedAnswers[index] = { answer: currentAnswer };
     setAnswers(updatedAnswers);
     if (index < questions.length - 1) {
       setIndex(index + 1);
@@ -91,20 +90,18 @@ const UserSurvey: React.FC = () => {
       setView("preview");
     }
   };
-  const handleSkipToggle = () => {
+
+  // Skip logic
+  const handleSkip = () => {
     const updatedAnswers = [...answers];
-    if (answers[index]?.skipped) {
-      updatedAnswers[index] = { answer: "", skipped: false };
-      setAnswers(updatedAnswers);
+    updatedAnswers[index] = { answer: "" };
+    setAnswers(updatedAnswers);
+    if (index < questions.length - 1) {
+      setIndex(index + 1);
     } else {
-      updatedAnswers[index] = { answer: "", skipped: true };
-      setAnswers(updatedAnswers);
-      if (index < questions.length - 1) {
-        setIndex(index + 1);
-      } else {
-        setView("preview");
-      }
+      setView("preview");
     }
+    setError(""); // Clear any previous error
   };
 
   const handleSelectQuestion = (i: number) => {
@@ -112,26 +109,22 @@ const UserSurvey: React.FC = () => {
     setView("survey");
   };
 
+  // Send payload with questionId
   const handlePublish = async () => {
     const payload = {
-      user: {
-        name: user.name,
-        isAnonymous: user.isAnonymous,
-        proficiency,
-      },
       answers: questions.map((q, i) => ({
         questionId: q._id,
         answer: answers[i]?.answer || "",
-        skipped: answers[i]?.skipped || false,
       })),
     };
 
     try {
-      const res = await fetch(`${API}/api/v1/answers/surveyAnswers`, {
-        method: "POST",
+      const res = await fetch(`${API}/api/v1/answers`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       if (!res.ok) {
         const data = await res.json();
         alert(data?.error || "Failed to submit answers");
@@ -144,8 +137,7 @@ const UserSurvey: React.FC = () => {
     }
   };
 
-  // --- Early returns for modal/loading/error/empty states ---
-
+  // Modals/loading/error/empty
   if (showProficiencyModal) {
     return (
       <ProficiencyLevelModal
@@ -178,7 +170,7 @@ const UserSurvey: React.FC = () => {
       </div>
     );
 
-  // --- Main survey UI ---
+  // Main survey UI
   return (
     <>
       {/* Logout Confirmation Modal */}
@@ -210,10 +202,11 @@ const UserSurvey: React.FC = () => {
                   }`}
                 >
                   <span>Question {i + 1}</span>
-                  {answers[i]?.skipped ? (
-                    <span className="w-3 h-3 bg-blue-400 rounded-full" title="Skipped"></span>
-                  ) : answers[i]?.answer?.trim() !== "" ? (
-                    <span className="w-3 h-3 bg-green-500 rounded-full" title="Answered"></span>
+                  {answers[i]?.answer?.trim() !== "" ? (
+                    <span
+                      className="w-3 h-3 bg-green-500 rounded-full"
+                      title="Answered"
+                    ></span>
                   ) : null}
                 </li>
               ))}
@@ -224,7 +217,9 @@ const UserSurvey: React.FC = () => {
               className="h-full bg-purple-500 rounded"
               style={{
                 width: `${
-                  (answers.filter((a) => a.answer.trim() !== "" || a.skipped).length / questions.length) * 100
+                  (answers.filter((a) => a.answer.trim() !== "").length /
+                    questions.length) *
+                  100
                 }%`,
               }}
             ></div>
@@ -269,26 +264,20 @@ const UserSurvey: React.FC = () => {
                 placeholder="Type your answer here"
                 aria-required="true"
                 aria-invalid={!!error}
-                disabled={answers[index]?.skipped}
               />
               <div className="flex flex-wrap justify-center mb-6 gap-4">
                 <button
                   className="px-6 py-3 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 transition-colors"
                   onClick={handleSaveNext}
-                  disabled={answers[index]?.skipped}
                 >
                   {index === questions.length - 1 ? "Preview" : "Save and Next"}
                 </button>
                 <button
-                  className={`px-6 py-3 rounded-lg shadow transition-colors
-                    ${answers[index]?.skipped
-                      ? "bg-blue-500 text-white hover:bg-blue-600"
-                      : "bg-gray-400 text-white hover:bg-gray-500"
-                    }`}
+                  className="px-6 py-3 bg-gray-300 text-black rounded-lg shadow hover:bg-gray-400 transition-colors"
+                  onClick={handleSkip}
                   type="button"
-                  onClick={handleSkipToggle}
                 >
-                  {answers[index]?.skipped ? "Unskip" : "Skip"}
+                  Skip
                 </button>
               </div>
               <div className="flex items-center justify-center mb-2">
@@ -334,10 +323,11 @@ const UserSurvey: React.FC = () => {
                       Q{i + 1}. {q.question}
                     </p>
                     <p className="text-purple-700 ml-4">
-                      {answers[i]?.skipped
-                        ? <span className="text-blue-600 font-bold">Skipped</span>
-                        : <>Ans: {answers[i]?.answer || <span className="text-gray-500">Not answered</span>}</>
-                      }
+                      {answers[i]?.answer ? (
+                        <>Ans: {answers[i].answer}</>
+                      ) : (
+                        <span className="text-gray-500">Not answered</span>
+                      )}
                     </p>
                   </li>
                 ))}

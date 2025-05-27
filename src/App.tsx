@@ -11,9 +11,11 @@ import LoginPage from "./components/LoginPage.tsx";
 import NotFound from "./components/NotFound.tsx";
 import UserSurvey from "./components/UserSurvey.tsx";
 import { Question } from "./type.ts";
+import AnalyticsPage from "./components/AnalyticsPage.tsx";
+// in your <Routes>
 
 const ADMIN_PASSWORD = "admin123";
-const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -25,6 +27,7 @@ type Level = (typeof LEVELS)[number];
 const App: React.FC = () => (
   <Router>
     <Routes>
+      <Route path="/analytics" element={<AnalyticsPage />} />
       <Route path="/login" element={<LoginWrapper />} />
       <Route path="/form" element={<UserSurvey />} />
       <Route path="/dashboard" element={<SurveyPage />} />
@@ -251,47 +254,56 @@ const SurveyPage: React.FC = () => {
     }
   };
 
+  // -------------- UPDATED HERE --------------
   const handlePublish = useCallback(async () => {
     setIsSubmitting(true);
     setError("");
     // Flatten all questions from all levels
     const allQuestions = LEVELS.flatMap((lvl) => questionsByLevel[lvl]);
-    const completedCount = allQuestions.filter(
-      (q) => q.question.trim() && q.category && q.level
-    ).length;
-    if (completedCount === 0) {
-      setError("You must complete at least one question before publishing.");
+    // Checks if there is at least one completed question in each level
+    const isReadyToPublish = LEVELS.every((lvl) =>
+      questionsByLevel[lvl].some(
+        (q) => q.question.trim() && q.category && q.level
+      )
+    );
+
+    if (!isReadyToPublish) {
+      setError(
+        "Please complete at least one question in each level (Beginner, Intermediate, Advanced) before publishing."
+      );
       setIsSubmitting(false);
       return;
     }
-    try {
-  await fetch(`${API}/api/v1/questions`, { method: "DELETE" });
-  const payload = allQuestions.map((q) => ({
-    question: q.question,
-    questionType: "Input",
-    questionCategory: q.category,
-    questionLevel: q.level,
-  }));
-  const res = await fetch(`${API}/api/v1/questions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error || "Publish failed");
-  alert("Survey published successfully!");
-  fetchQuestions();
-} catch (err: any) {
-  setError(err.message || "Failed to publish survey.");
-}setIsSubmitting(false);
-}, [questionsByLevel, fetchQuestions]);
-const handleLogout = useCallback(() => {
-  navigate("/sbna-gameshow-form");
-}, [navigate]);
 
-  const completedCount = LEVELS.flatMap((lvl) => questionsByLevel[lvl]).filter(
-    (q) => q.question.trim() && q.category && q.level
-  ).length;
+    try {
+      await fetch(`${API}/api/v1/questions`, { method: "DELETE" });
+
+      const payload = allQuestions.map((q) => ({
+        question: q.question,
+        questionType: "Input",
+        questionCategory: q.category,
+        questionLevel: q.level,
+      }));
+      const res = await fetch(`${API}/api/v1/questions/surveyQuestions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Publish failed");
+      alert("Survey published successfully!");
+      fetchQuestions();
+    } catch (err: any) {
+      setError(err.message || "Failed to publish survey.");
+    }
+    setIsSubmitting(false);
+  }, [questionsByLevel, fetchQuestions]);
+
+  // -------------------------------------------
+
+  const handleLogout = useCallback(() => {
+    navigate("/sbna-gameshow-form");
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-purple-50">
@@ -419,9 +431,7 @@ const handleLogout = useCallback(() => {
                   </label>
                   <select
                     value={questions[currentIndex].category}
-                    onChange={(e) =>
-                      updateQuestion("category", e.target.value)
-                    }
+                    onChange={(e) => updateQuestion("category", e.target.value)}
                     className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="">Choose a category</option>
@@ -478,11 +488,19 @@ const handleLogout = useCallback(() => {
       <div className="flex justify-end max-w-4xl mx-auto pb-6 pr-6">
         <button
           onClick={handlePublish}
-          disabled={isSubmitting || completedCount === 0}
+          disabled={
+            isSubmitting ||
+            !LEVELS.every((lvl) =>
+              questionsByLevel[lvl].some(
+                (q) => q.question.trim() && q.category && q.level
+              )
+            )
+          }
           className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
           📤 {isSubmitting ? "Publishing..." : "Publish All"}
         </button>
+
         <button
           onClick={handleLogout}
           className="ml-4 px-6 py-3 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
