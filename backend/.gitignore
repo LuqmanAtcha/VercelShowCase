@@ -1,10 +1,6 @@
 # Node modules
 node_modules/
 
-# Environment variables
-.env
-.env*
-
 # Build output (if you add a build step in the future)
 dist/
 build/
