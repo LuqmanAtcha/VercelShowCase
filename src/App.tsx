@@ -11,6 +11,8 @@ import LoginPage from "./components/LoginPage.tsx";
 import NotFound from "./components/NotFound.tsx";
 import UserSurvey from "./components/UserSurvey.tsx";
 import { Question } from "./type.ts";
+import AnalyticsPage from "./components/AnalyticsPage.tsx";
+// in your <Routes>
 
 const ADMIN_PASSWORD = "admin123";
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
@@ -25,6 +27,7 @@ type Level = (typeof LEVELS)[number];
 const App: React.FC = () => (
   <Router>
     <Routes>
+      <Route path="/analytics" element={<AnalyticsPage />} />
       <Route path="/login" element={<LoginWrapper />} />
       <Route path="/form" element={<UserSurvey />} />
       <Route path="/dashboard" element={<SurveyPage />} />
@@ -274,7 +277,7 @@ const SurveyPage: React.FC = () => {
 
     try {
       await fetch(`${API}/api/v1/questions`, { method: "DELETE" });
-      await fetch(`${API}/api/v1/answers`, { method: "DELETE" });
+
       const payload = allQuestions.map((q) => ({
         question: q.question,
         questionType: "Input",
@@ -301,7 +304,6 @@ const SurveyPage: React.FC = () => {
   const handleLogout = useCallback(() => {
     navigate("/sbna-gameshow-form");
   }, [navigate]);
-
 
   return (
     <div className="min-h-screen bg-purple-50">
