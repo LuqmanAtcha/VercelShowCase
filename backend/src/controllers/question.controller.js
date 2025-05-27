@@ -9,30 +9,41 @@ these questions dont have any answers. Just the questions and their type
 */
 const addQuestions = asyncHandler(async (req, res) => {
   // get the response from frontend
-  const { question, questionType } = req.body;
+  const { question, questionCategory, questionLevel, questionType } = req.body;
 
   // checking for empty validation
-  if ([question, questionType].some((field) => field?.trim() === "")) {
+  if (
+    [question, questionCategory, questionLevel].some(
+      (field) => field?.trim() === ""
+    )
+  ) {
     throw new ApiError(400, "All fields are required");
   }
 
   const normalizedQuestion = question.toLowerCase().trim();
 
-  //looking for existing question with same type
+  //looking for existing question with same type, Category and Level
   const existedQuestion = await Question.findOne({
     question: normalizedQuestion,
-    questionType,
+    questionType: questionType,
+    questionCategory: questionCategory,
+    questionLevel: questionLevel,
   });
 
   // throw error if question exists
   if (existedQuestion) {
-    throw new ApiError(409, "Question with same Question Type already exists");
+    throw new ApiError(
+      409,
+      "Question with same Question Type, Category and Question Level already exists"
+    );
   }
 
   // Creating a question Object - creating an entery in DB
   const questionObj = await Question.create({
     question: normalizedQuestion,
-    questionType,
+    questionCategory: questionCategory,
+    questionLevel: questionLevel,
+    questionType: questionType,
   });
 
   // validating if qustion Object was created
@@ -54,6 +65,7 @@ const addQuestions = asyncHandler(async (req, res) => {
     );
 });
 
+// User requests the questions
 const getQuestion = asyncHandler(async (req, res) => {
   /*
   FUTURE TO-DO:
@@ -69,11 +81,11 @@ const getQuestion = asyncHandler(async (req, res) => {
 
   // Retrieving only question and questionType for all the questions
   const questions = await Question.find({})
-    .select("question questionType answers")
+    .select("question questionCategory questionLevel")
     .sort({ createdAt: -1 }) // shows the latest questions on top
     .skip(skip)
-    .limit(limit)
-    .populate('answers');
+    .limit(limit);
+  // .populate("answers");
 
   // If no questions found Throw Error
   if (questions.length === 0) {
