@@ -6,7 +6,7 @@ const app = express();
 // Enable CORS with credentials (cookies, auth headers)
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
     credentials: true,
   })
 );

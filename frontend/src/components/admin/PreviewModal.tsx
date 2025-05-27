@@ -52,7 +52,9 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
         <div className="p-6 overflow-y-auto flex-1">
           <p className="mb-4 text-gray-700">{description}</p>
           {questions.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No questions added yet.</p>
+            <p className="text-center text-gray-500 py-8">
+              No questions added yet.
+            </p>
           ) : (
             <ul className="space-y-4">
               {questions.map((q, idx) => (
@@ -60,7 +62,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-medium">Question {idx + 1}</span>
                     <span className="text-sm text-gray-500">
-                      {q.category || "—"} / {q.level || "—"}
+                      {q.questionCategory || "—"} / {q.questionLevel || "—"}
                     </span>
                   </div>
                   <p className="text-gray-800">

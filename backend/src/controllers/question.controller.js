@@ -48,7 +48,7 @@ const getQuestion = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const questions = await Question.find({})
-    .select("question questionType")
+    .select("question questionType questionCategory questionLevel")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
