@@ -304,6 +304,10 @@ const SurveyPage: React.FC = () => {
   const handleLogout = useCallback(() => {
     navigate("/sbna-gameshow-form");
   }, [navigate]);
+  
+  const handleAnalytics = useCallback(() => {
+  navigate('/analytics');
+}, [navigate]);
 
   return (
     <div className="min-h-screen bg-purple-50">
@@ -500,7 +504,14 @@ const SurveyPage: React.FC = () => {
         >
           📤 {isSubmitting ? "Publishing..." : "Publish All"}
         </button>
-
+        
+        <button
+        onClick={handleAnalytics}
+        className="ml-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          📊 Analytics
+          </button>
+          make 
         <button
           onClick={handleLogout}
           className="ml-4 px-6 py-3 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
