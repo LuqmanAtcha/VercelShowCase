@@ -56,8 +56,7 @@ const UserSurvey: React.FC = () => {
         }));
 
         const filtered = formattedQuestions.filter(
-          (q: any) =>
-            (q.questionLevel || q.level) === proficiency
+          (q: any) => (q.questionLevel || q.level) === proficiency
         );
 
         setQuestions(filtered);
@@ -76,6 +75,7 @@ const UserSurvey: React.FC = () => {
     setError("");
   }, [index, answers]);
 
+  // Save/Next logic
   const handleSaveNext = () => {
     if (!currentAnswer.trim()) {
       setError("Please answer the question or use Skip.");
@@ -91,12 +91,25 @@ const UserSurvey: React.FC = () => {
     }
   };
 
+  // Skip logic
+  const handleSkip = () => {
+    const updatedAnswers = [...answers];
+    updatedAnswers[index] = { answer: "" };
+    setAnswers(updatedAnswers);
+    if (index < questions.length - 1) {
+      setIndex(index + 1);
+    } else {
+      setView("preview");
+    }
+    setError(""); // Clear any previous error
+  };
+
   const handleSelectQuestion = (i: number) => {
     setIndex(i);
     setView("survey");
   };
 
-  // FIXED: send payload with questionId
+  // Send payload with questionId
   const handlePublish = async () => {
     const payload = {
       answers: questions.map((q, i) => ({
@@ -109,7 +122,7 @@ const UserSurvey: React.FC = () => {
       const res = await fetch(`${API}/api/v1/answers`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload), // USE THE payload WITH questionId
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -124,8 +137,7 @@ const UserSurvey: React.FC = () => {
     }
   };
 
-  // --- Early returns for modal/loading/error/empty states ---
-
+  // Modals/loading/error/empty
   if (showProficiencyModal) {
     return (
       <ProficiencyLevelModal
@@ -158,7 +170,7 @@ const UserSurvey: React.FC = () => {
       </div>
     );
 
-  // --- Main survey UI ---
+  // Main survey UI
   return (
     <>
       {/* Logout Confirmation Modal */}
@@ -191,7 +203,10 @@ const UserSurvey: React.FC = () => {
                 >
                   <span>Question {i + 1}</span>
                   {answers[i]?.answer?.trim() !== "" ? (
-                    <span className="w-3 h-3 bg-green-500 rounded-full" title="Answered"></span>
+                    <span
+                      className="w-3 h-3 bg-green-500 rounded-full"
+                      title="Answered"
+                    ></span>
                   ) : null}
                 </li>
               ))}
@@ -202,7 +217,9 @@ const UserSurvey: React.FC = () => {
               className="h-full bg-purple-500 rounded"
               style={{
                 width: `${
-                  (answers.filter((a) => a.answer.trim() !== "").length / questions.length) * 100
+                  (answers.filter((a) => a.answer.trim() !== "").length /
+                    questions.length) *
+                  100
                 }%`,
               }}
             ></div>
@@ -255,6 +272,13 @@ const UserSurvey: React.FC = () => {
                 >
                   {index === questions.length - 1 ? "Preview" : "Save and Next"}
                 </button>
+                <button
+                  className="px-6 py-3 bg-gray-300 text-black rounded-lg shadow hover:bg-gray-400 transition-colors"
+                  onClick={handleSkip}
+                  type="button"
+                >
+                  Skip
+                </button>
               </div>
               <div className="flex items-center justify-center mb-2">
                 <div className="w-full bg-gray-200 rounded-full h-2 max-w-xs">
@@ -299,9 +323,11 @@ const UserSurvey: React.FC = () => {
                       Q{i + 1}. {q.question}
                     </p>
                     <p className="text-purple-700 ml-4">
-                      {answers[i]?.answer
-                        ? <>Ans: {answers[i].answer}</>
-                        : <span className="text-gray-500">Not answered</span>}
+                      {answers[i]?.answer ? (
+                        <>Ans: {answers[i].answer}</>
+                      ) : (
+                        <span className="text-gray-500">Not answered</span>
+                      )}
                     </p>
                   </li>
                 ))}
