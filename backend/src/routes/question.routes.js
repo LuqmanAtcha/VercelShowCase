@@ -42,24 +42,19 @@ router.post("/surveyQuestions", async (req, res) => {
   }
 });
 
-// PUT /api/v1/questions/surveyQuestions
-router.put("/surveyQuestions", async (req, res) => {
-  console.log("[INFO] PUT /api/v1/questions/surveyQuestions called");
+
+// PUT /api/v1/questions/:id
+router.put("/questions/:id", async (req, res) => {
   try {
-    const questions = Array.isArray(req.body) ? req.body : [req.body];
-    console.log(`[DEBUG] Inserting ${questions.length} questions`);
-    const saved = await Question.insertMany(questions);
-    console.log(`[SUCCESS] Questions created: ${saved.length}`);
-    res.status(201).json({
-      message: "Questions saved.",
-      count: saved.length,
-      questions: saved,
-    });
+    const { id } = req.params;
+    const updated = await Question.findByIdAndUpdate(id, req.body, { new: true });
+    if (!updated) return res.status(404).json({ error: "Question not found" });
+    res.status(200).json(updated);
   } catch (err) {
-    console.error("[ERROR] Failed to create questions:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // DELETE /api/v1/questions
 router.delete("/", async (req, res) => {
