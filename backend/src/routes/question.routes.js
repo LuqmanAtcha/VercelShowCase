@@ -8,7 +8,7 @@ router.get("/", async (req, res) => {
   console.log("[INFO] GET /api/v1/questions called");
   try {
     const page = parseInt(req.query.page) || 1;
-    const pageSize = 20;
+    const pageSize = 200;
     const skip = (page - 1) * pageSize;
     console.log(`[DEBUG] Pagination: page=${page}, pageSize=${pageSize}, skip=${skip}`);
     const [total, questions] = await Promise.all([
