@@ -1,10 +1,7 @@
 import dotenv from "dotenv";
 import connectDB from "./db/index.js";
 import app from "./app.js";
-dotenv.config({
-  path: "src/.env",
-});
-
+dotenv.config({ path: "../.env" });
 
 // Connect to MongoDB, then start the server
 connectDB()
