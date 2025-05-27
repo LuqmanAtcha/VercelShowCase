@@ -1,9 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import {
-  QUESTION_CATEGORY,
-  QUESTION_LEVEL,
-  QUESTION_TYPE,
-} from "../constants.js";
+import { QUESTION_CATEGORY, QUESTION_LEVEL, QUESTION_TYPE } from "../constants.js";
 
 const questionSchema = new Schema(
   {
@@ -23,8 +19,8 @@ const questionSchema = new Schema(
       enum: Object.values(QUESTION_LEVEL),
       required: false,
     },
-    timesSkipped: { type: Number, required: false, min: 0 },
-    answers: [{ type: Schema.Types.ObjectId, ref: "Answer", required: false }], // Reference Answer Scehma
+    timesSkipped: { type: Number, required: false, min: 0},
+    answers: [answerSchema], // Embedded answers
   },
   { timestamps: true }
 );
