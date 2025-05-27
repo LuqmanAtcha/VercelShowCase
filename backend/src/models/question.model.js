@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { answerSchema } from "./answer.model.js";
 import { QUESTION_CATEGORY, QUESTION_LEVEL, QUESTION_TYPE } from "../constants.js";
 
 const questionSchema = new Schema(
