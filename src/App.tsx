@@ -257,14 +257,21 @@ const SurveyPage: React.FC = () => {
     setError("");
     // Flatten all questions from all levels
     const allQuestions = LEVELS.flatMap((lvl) => questionsByLevel[lvl]);
-    const completedCount = allQuestions.filter(
-      (q) => q.question.trim() && q.category && q.level
-    ).length;
-    if (completedCount === 0) {
-      setError("You must complete at least one question before publishing.");
+    // Checks if there is at least one completed question in each level
+    const isReadyToPublish = LEVELS.every((lvl) =>
+      questionsByLevel[lvl].some(
+        (q) => q.question.trim() && q.category && q.level
+      )
+    );
+
+    if (!isReadyToPublish) {
+      setError(
+        "Please complete at least one question in each level (Beginner, Intermediate, Advanced) before publishing."
+      );
       setIsSubmitting(false);
       return;
     }
+
     try {
       await fetch(`${API}/api/v1/questions`, { method: "DELETE" });
       await fetch(`${API}/api/v1/answers`, { method: "DELETE" });
@@ -274,7 +281,6 @@ const SurveyPage: React.FC = () => {
         questionCategory: q.category,
         questionLevel: q.level,
       }));
-      // --- CHANGE THIS ENDPOINT TO /surveyQuestions ---
       const res = await fetch(`${API}/api/v1/questions/surveyQuestions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -289,15 +295,13 @@ const SurveyPage: React.FC = () => {
     }
     setIsSubmitting(false);
   }, [questionsByLevel, fetchQuestions]);
+
   // -------------------------------------------
 
   const handleLogout = useCallback(() => {
     navigate("/sbna-gameshow-form");
   }, [navigate]);
 
-  const completedCount = LEVELS.flatMap((lvl) => questionsByLevel[lvl]).filter(
-    (q) => q.question.trim() && q.category && q.level
-  ).length;
 
   return (
     <div className="min-h-screen bg-purple-50">
@@ -425,9 +429,7 @@ const SurveyPage: React.FC = () => {
                   </label>
                   <select
                     value={questions[currentIndex].category}
-                    onChange={(e) =>
-                      updateQuestion("category", e.target.value)
-                    }
+                    onChange={(e) => updateQuestion("category", e.target.value)}
                     className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="">Choose a category</option>
@@ -484,11 +486,19 @@ const SurveyPage: React.FC = () => {
       <div className="flex justify-end max-w-4xl mx-auto pb-6 pr-6">
         <button
           onClick={handlePublish}
-          disabled={isSubmitting || completedCount === 0}
+          disabled={
+            isSubmitting ||
+            !LEVELS.every((lvl) =>
+              questionsByLevel[lvl].some(
+                (q) => q.question.trim() && q.category && q.level
+              )
+            )
+          }
           className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
           📤 {isSubmitting ? "Publishing..." : "Publish All"}
         </button>
+
         <button
           onClick={handleLogout}
           className="ml-4 px-6 py-3 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
