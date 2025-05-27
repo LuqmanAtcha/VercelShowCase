@@ -511,7 +511,6 @@ const SurveyPage: React.FC = () => {
         >
           📊 Analytics
           </button>
-          make 
         <button
           onClick={handleLogout}
           className="ml-4 px-6 py-3 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
