@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
+const API_KEY = "onn32q43QijfewnS20in2siu!$d24324ckxf";
 
 interface Question {
   _id: string;
@@ -25,13 +26,17 @@ const AnalyticsPage: React.FC = () => {
       setLoading(true);
       setErr(null);
       try {
-        const qRes = await fetch(`${API}/api/v1/questions?page=1`);
+        const qRes = await fetch(`${API}/api/v1/questions?page=1`, {
+          headers: { "x-api-key": API_KEY }
+        });
         const qData = await qRes.json();
         if (!qRes.ok)
           throw new Error(qData?.error || "Failed to fetch questions");
         setQuestions(qData.questions || []);
 
-        const aRes = await fetch(`${API}/api/v1/answers?page=1`);
+        const aRes = await fetch(`${API}/api/v1/answers?page=1`, {
+          headers: { "x-api-key": API_KEY }
+        });
         const aData = await aRes.json();
         if (!aRes.ok)
           throw new Error(aData?.error || "Failed to fetch answers");
@@ -53,37 +58,29 @@ const AnalyticsPage: React.FC = () => {
     answers.filter((a) => a.questionId === questionId).length;
 
   // --- Analysis Calculations ---
-  // (1) Total answers
   const totalAnswers = answers.length;
-
-  // (2) Total skipped answers
   const totalSkipped = answers.filter((a) => a.answer.trim() === "").length;
 
-  // (3) Skipped answers per question
   const getSkippedCountForQuestion = (questionId: string) =>
     answers.filter((a) => a.questionId === questionId && a.answer.trim() === "")
       .length;
 
-  // (4) Answered (non-skipped) count per question
   const getNonSkippedCountForQuestion = (questionId: string) =>
     answers.filter((a) => a.questionId === questionId && a.answer.trim() !== "")
       .length;
 
-  // (5) Category analysis
   const categoryCounts = questions.reduce((acc: Record<string, number>, q) => {
     acc[q.questionCategory] =
       (acc[q.questionCategory] || 0) + getAnswerCountForQuestion(q._id);
     return acc;
   }, {});
 
-  // (6) Level analysis
   const levelCounts = questions.reduce((acc: Record<string, number>, q) => {
     acc[q.questionLevel] =
       (acc[q.questionLevel] || 0) + getAnswerCountForQuestion(q._id);
     return acc;
   }, {});
 
-  // (7) Most answered question
   const mostAnswered = questions.reduce<{ id?: string; count: number }>(
     (acc, q) => {
       const count = getNonSkippedCountForQuestion(q._id);
@@ -92,7 +89,6 @@ const AnalyticsPage: React.FC = () => {
     { id: undefined, count: 0 }
   );
 
-  // (8) Most skipped question
   const mostSkipped = questions.reduce<{ id?: string; count: number }>(
     (acc, q) => {
       const count = getSkippedCountForQuestion(q._id);
@@ -101,14 +97,12 @@ const AnalyticsPage: React.FC = () => {
     { id: undefined, count: 0 }
   );
 
-  // (9) Skip rate per question
   const getSkipRate = (questionId: string) => {
     const total = getAnswerCountForQuestion(questionId);
     const skipped = getSkippedCountForQuestion(questionId);
     return total > 0 ? ((skipped / total) * 100).toFixed(1) : "0.0";
   };
 
-  // (10) Overall skip rate
   const overallSkipRate =
     totalAnswers > 0 ? ((totalSkipped / totalAnswers) * 100).toFixed(1) : "0.0";
 

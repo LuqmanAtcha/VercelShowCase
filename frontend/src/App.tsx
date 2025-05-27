@@ -16,6 +16,7 @@ import AnalyticsPage from "./components/AnalyticsPage.tsx";
 
 const ADMIN_PASSWORD = "admin123";
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
+const API_KEY = "onn32q43QijfewnS20in2siu!$d24324ckxf";
 
 const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -276,7 +277,11 @@ const SurveyPage: React.FC = () => {
     }
 
     try {
-      await fetch(`${API}/api/v1/questions`, { method: "DELETE" });
+      await fetch(`${API}/api/v1/questions/`, {
+  method: "DELETE",
+  headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
+  body: JSON.stringify({ _id: "ALL" }) // (or whatever backend expects)
+});
 
       const payload = allQuestions.map((q) => ({
         question: q.question,
@@ -286,7 +291,7 @@ const SurveyPage: React.FC = () => {
       }));
       const res = await fetch(`${API}/api/v1/questions/surveyQuestions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-api-key": API_KEY  },
         body: JSON.stringify(payload),
       });
       const data = await res.json();

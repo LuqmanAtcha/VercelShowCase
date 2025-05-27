@@ -4,6 +4,7 @@ import ProficiencyLevelModal from "./proficiencyModal.tsx";
 import LogoutPromptModal from "./LogoutPromptModal.tsx";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API_KEY = "onn32q43QijfewnS20in2siu!$d24324ckxf";
 
 interface Question {
   _id: string;
@@ -45,7 +46,9 @@ const UserSurvey: React.FC = () => {
     setFetchError(null);
     const fetchQuestions = async () => {
       try {
-        const res = await fetch(`${API}/api/v1/questions/?page=1`);
+        const res = await fetch(`${API}/api/v1/questions/?page=1`, {
+          headers: { "x-api-key": API_KEY }
+        });
         const data = await res.json();
         if (!res.ok)
           throw new Error(data?.error || "Failed to fetch questions");
@@ -119,9 +122,12 @@ const UserSurvey: React.FC = () => {
     };
 
     try {
-      const res = await fetch(`${API}/api/v1/answers`, {
+      const res = await fetch(`${API}/api/v1/answer`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -217,9 +223,7 @@ const UserSurvey: React.FC = () => {
               className="h-full bg-purple-500 rounded"
               style={{
                 width: `${
-                  (answers.filter((a) => a.answer.trim() !== "").length /
-                    questions.length) *
-                  100
+                  (answers.filter((a) => a.answer.trim() !== "").length / questions.length) * 100
                 }%`,
               }}
             ></div>
