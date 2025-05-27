@@ -3,9 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import ProficiencyLevelModal from "./proficiencyModal.tsx";
 import LogoutPromptModal from "./LogoutPromptModal.tsx";
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:5000";
-const API_KEY = "onn32q43QijfewnS20in2siu!$d24324ckxf";
-
+const API = process.env.REACT_APP_API_URL || "http://localhost:8000"; // <-- fix port!
 interface Question {
   _id: string;
   id?: string;
@@ -40,20 +38,18 @@ const UserSurvey: React.FC = () => {
   const [error, setError] = useState("");
 
   // Only fetch questions AFTER proficiency is selected
+
   useEffect(() => {
     if (!proficiency) return;
     setLoading(true);
     setFetchError(null);
     const fetchQuestions = async () => {
       try {
-        const res = await fetch(`${API}/api/v1/questions/?page=1`, {
-          headers: { "x-api-key": API_KEY }
-        });
+        const res = await fetch(`${API}/api/v1/questions?page=1`);
         const data = await res.json();
         if (!res.ok)
           throw new Error(data?.error || "Failed to fetch questions");
-
-        const formattedQuestions = (data.questions || []).map((q: any) => ({
+        const formattedQuestions = (data.data || []).map((q: any) => ({
           ...q,
           id: q._id,
         }));
@@ -126,7 +122,7 @@ const UserSurvey: React.FC = () => {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": API_KEY,
+          // "x-api-key": API_KEY,
         },
         body: JSON.stringify(payload),
       });
@@ -223,7 +219,9 @@ const UserSurvey: React.FC = () => {
               className="h-full bg-purple-500 rounded"
               style={{
                 width: `${
-                  (answers.filter((a) => a.answer.trim() !== "").length / questions.length) * 100
+                  (answers.filter((a) => a.answer.trim() !== "").length /
+                    questions.length) *
+                  100
                 }%`,
               }}
             ></div>

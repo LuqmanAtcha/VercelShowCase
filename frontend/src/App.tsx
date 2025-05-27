@@ -1,3 +1,4 @@
+// App.tsx
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -12,11 +13,9 @@ import NotFound from "./components/NotFound.tsx";
 import UserSurvey from "./components/UserSurvey.tsx";
 import { Question } from "./type.ts";
 import AnalyticsPage from "./components/AnalyticsPage.tsx";
-// in your <Routes>
 
 const ADMIN_PASSWORD = "admin123";
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
-const API_KEY = "onn32q43QijfewnS20in2siu!$d24324ckxf";
 
 const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -92,19 +91,37 @@ const LoginWrapper: React.FC = () => {
   );
 };
 
-// --- ADMIN SURVEY PAGE with Difficulty Switch in Dropdown ---
+// --- ADMIN SURVEY PAGE ---
 const SurveyPage: React.FC = () => {
   const [questionsByLevel, setQuestionsByLevel] = useState<
     Record<Level, Question[]>
   >({
     Beginner: [
-      { id: generateId(), question: "", category: "", level: "Beginner" },
+      {
+        id: generateId(),
+        questionType: "Input",
+        question: "",
+        questionCategory: "",
+        questionLevel: "Beginner",
+      },
     ],
     Intermediate: [
-      { id: generateId(), question: "", category: "", level: "Intermediate" },
+      {
+        id: generateId(),
+        questionType: "Input",
+        question: "",
+        questionCategory: "",
+        questionLevel: "Intermediate",
+      },
     ],
     Advanced: [
-      { id: generateId(), question: "", category: "", level: "Advanced" },
+      {
+        id: generateId(),
+        questionType: "Input",
+        question: "",
+        questionCategory: "",
+        questionLevel: "Advanced",
+      },
     ],
   });
   const [currentTab, setCurrentTab] = useState<Level>("Beginner");
@@ -121,12 +138,15 @@ const SurveyPage: React.FC = () => {
       const res = await fetch(`${API}/api/v1/questions?page=1`);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to fetch questions");
-      const formatted = (data.questions || []).map((q: any) => ({
+
+      const formatted = (data.data || []).map((q: any) => ({
         id: q._id || generateId(),
         question: q.question || "",
-        category: q.questionCategory || q.category || "",
-        level: q.questionLevel || q.level || "",
+        questionType: q.questionType || "Input",
+        questionCategory: q.questionCategory || "",
+        questionLevel: q.questionLevel || "",
       }));
+
       // Group by level
       const grouped: Record<Level, Question[]> = {
         Beginner: [],
@@ -134,8 +154,8 @@ const SurveyPage: React.FC = () => {
         Advanced: [],
       };
       formatted.forEach((q) => {
-        if (LEVELS.includes(q.level as Level)) {
-          grouped[q.level as Level].push(q);
+        if (LEVELS.includes(q.questionLevel as Level)) {
+          grouped[q.questionLevel as Level].push(q);
         }
       });
       // Ensure at least one empty question per level for UX
@@ -144,8 +164,9 @@ const SurveyPage: React.FC = () => {
           grouped[lvl].push({
             id: generateId(),
             question: "",
-            category: "",
-            level: lvl,
+            questionType: "Input",
+            questionCategory: "",
+            questionLevel: lvl,
           });
       });
       setQuestionsByLevel(grouped);
@@ -153,25 +174,37 @@ const SurveyPage: React.FC = () => {
     } catch (err: any) {
       setQuestionsByLevel({
         Beginner: [
-          { id: generateId(), question: "", category: "", level: "Beginner" },
+          {
+            id: generateId(),
+            questionType: "Input",
+            question: "",
+            questionCategory: "",
+            questionLevel: "Beginner",
+          },
         ],
         Intermediate: [
           {
             id: generateId(),
+            questionType: "Input",
             question: "",
-            category: "",
-            level: "Intermediate",
+            questionCategory: "",
+            questionLevel: "Intermediate",
           },
         ],
         Advanced: [
-          { id: generateId(), question: "", category: "", level: "Advanced" },
+          {
+            id: generateId(),
+            questionType: "Input",
+            question: "",
+            questionCategory: "",
+            questionLevel: "Advanced",
+          },
         ],
       });
       setCurrentIndex(0);
     }
   }, []);
 
-  // Protect admin route
   useEffect(() => {
     if (localStorage.getItem("isAdmin") !== "true") {
       navigate("/login", { replace: true });
@@ -194,8 +227,9 @@ const SurveyPage: React.FC = () => {
     const next: Question = {
       id: generateId(),
       question: "",
-      category: last?.category || "",
-      level: currentTab,
+      questionType: "Input",
+      questionCategory: last?.questionCategory || "",
+      questionLevel: currentTab,
     };
     const updated = [...questions, next];
     updateTabQuestions(updated);
@@ -209,62 +243,22 @@ const SurveyPage: React.FC = () => {
     setCurrentIndex(Math.min(i, updated.length - 1));
   };
 
-  // Improved: Move to another tab and set correct index
   const updateQuestion = (field: keyof Question, val: string) => {
-    if (field === "level") {
-      const newLevel = val as Level;
-      if (!LEVELS.includes(newLevel) || newLevel === currentTab) return;
-
-      setQuestionsByLevel((prev) => {
-        // Remove from current tab
-        const currentQuestions = [...prev[currentTab]];
-        const [moving] = currentQuestions.splice(currentIndex, 1);
-        const newQuestion = { ...moving, level: newLevel };
-        // Insert into new tab
-        const newLevelQuestions = [...prev[newLevel], newQuestion];
-        // Always keep at least one question per tab
-        return {
-          ...prev,
-          [currentTab]:
-            currentQuestions.length > 0
-              ? currentQuestions
-              : [
-                  {
-                    id: generateId(),
-                    question: "",
-                    category: "",
-                    level: currentTab,
-                  },
-                ],
-          [newLevel]: newLevelQuestions,
-        };
-      });
-
-      // Switch tab and show the newly moved question (at end of list)
-      setTimeout(() => {
-        setCurrentTab(newLevel);
-        setCurrentIndex(
-          questionsByLevel[newLevel].length // will be one ahead after setState, so -1
-        );
-      }, 0);
-    } else {
-      const copy = [...questions];
-      copy[currentIndex] = { ...copy[currentIndex], [field]: val };
-      updateTabQuestions(copy);
-      setError("");
-    }
+    const copy = [...questions];
+    copy[currentIndex] = { ...copy[currentIndex], [field]: val };
+    updateTabQuestions(copy);
+    setError("");
   };
 
-  // -------------- UPDATED HERE --------------
   const handlePublish = useCallback(async () => {
     setIsSubmitting(true);
     setError("");
     // Flatten all questions from all levels
     const allQuestions = LEVELS.flatMap((lvl) => questionsByLevel[lvl]);
-    // Checks if there is at least one completed question in each level
+
     const isReadyToPublish = LEVELS.every((lvl) =>
       questionsByLevel[lvl].some(
-        (q) => q.question.trim() && q.category && q.level
+        (q) => q.question.trim() && q.questionCategory && q.questionLevel
       )
     );
 
@@ -277,25 +271,26 @@ const SurveyPage: React.FC = () => {
     }
 
     try {
-      await fetch(`${API}/api/v1/questions/`, {
-  method: "DELETE",
-  headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
-  body: JSON.stringify({ _id: "ALL" }) // (or whatever backend expects)
-});
-
-      const payload = allQuestions.map((q) => ({
-        question: q.question,
-        questionType: "Input",
-        questionCategory: q.category,
-        questionLevel: q.level,
-      }));
-      const res = await fetch(`${API}/api/v1/questions/surveyQuestions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": API_KEY  },
-        body: JSON.stringify(payload),
+      // Remove all questions first (if needed)
+      await fetch(`${API}/api/v1/questions`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ _id: "ALL" }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Publish failed");
+
+      // Add new questions one-by-one
+      for (const q of allQuestions) {
+        await fetch(`${API}/api/v1/questions/surveyQuestions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question: q.question,
+            questionType: "Input",
+            questionCategory: q.questionCategory,
+            questionLevel: q.questionLevel,
+          }),
+        });
+      }
       alert("Survey published successfully!");
       fetchQuestions();
     } catch (err: any) {
@@ -304,15 +299,13 @@ const SurveyPage: React.FC = () => {
     setIsSubmitting(false);
   }, [questionsByLevel, fetchQuestions]);
 
-  // -------------------------------------------
-
   const handleLogout = useCallback(() => {
     navigate("/sbna-gameshow-form");
   }, [navigate]);
-  
+
   const handleAnalytics = useCallback(() => {
-  navigate('/analytics');
-}, [navigate]);
+    navigate("/analytics");
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-purple-50">
@@ -345,7 +338,8 @@ const SurveyPage: React.FC = () => {
           </h3>
           <div className="space-y-2 mb-4">
             {questions.map((q, idx) => {
-              const isCompleted = q.question.trim() && q.category && q.level;
+              const isCompleted =
+                q.question.trim() && q.questionCategory && q.questionLevel;
               const isCurrent = idx === currentIndex;
               return (
                 <div
@@ -439,8 +433,10 @@ const SurveyPage: React.FC = () => {
                     Category *
                   </label>
                   <select
-                    value={questions[currentIndex].category}
-                    onChange={(e) => updateQuestion("category", e.target.value)}
+                    value={questions[currentIndex].questionCategory}
+                    onChange={(e) =>
+                      updateQuestion("questionCategory", e.target.value)
+                    }
                     className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="">Choose a category</option>
@@ -454,8 +450,10 @@ const SurveyPage: React.FC = () => {
                     Difficulty Level *
                   </label>
                   <select
-                    value={questions[currentIndex].level}
-                    onChange={(e) => updateQuestion("level", e.target.value)}
+                    value={questions[currentIndex].questionLevel}
+                    onChange={(e) =>
+                      updateQuestion("questionLevel", e.target.value)
+                    }
                     className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <option value="">Select difficulty</option>
@@ -474,7 +472,7 @@ const SurveyPage: React.FC = () => {
                     copy[currentIndex] = {
                       ...copy[currentIndex],
                       question: "",
-                      category: "",
+                      questionCategory: "",
                     };
                     updateTabQuestions(copy);
                   }}
@@ -501,7 +499,8 @@ const SurveyPage: React.FC = () => {
             isSubmitting ||
             !LEVELS.every((lvl) =>
               questionsByLevel[lvl].some(
-                (q) => q.question.trim() && q.category && q.level
+                (q) =>
+                  q.question.trim() && q.questionCategory && q.questionLevel
               )
             )
           }
@@ -509,13 +508,13 @@ const SurveyPage: React.FC = () => {
         >
           📤 {isSubmitting ? "Publishing..." : "Publish All"}
         </button>
-        
+
         <button
-        onClick={handleAnalytics}
-        className="ml-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          onClick={handleAnalytics}
+          className="ml-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           📊 Analytics
-          </button>
+        </button>
         <button
           onClick={handleLogout}
           className="ml-4 px-6 py-3 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -523,8 +522,9 @@ const SurveyPage: React.FC = () => {
           🚪 Logout
         </button>
       </div>
-    </div>
+     </div>
   );
 };
+
 
 export default App;

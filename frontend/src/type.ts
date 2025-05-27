@@ -1,10 +1,13 @@
 // src/type.ts
 export interface Question {
-  id: string;
+  id?: string;
   question: string;
-  category: string;
-  level: string;
+  questionType: string;
+  questionCategory: string; // <-- use backend field name
+  questionLevel: string;    // <-- use backend field name
+
 }
+
 
 export interface User {
   name: string;

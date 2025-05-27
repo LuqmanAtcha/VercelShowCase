@@ -28,8 +28,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 }) => {
   const handleClear = () => {
     onUpdate("question", "");
-    onUpdate("category", "");
-    onUpdate("level", "");
+    onUpdate("questionCategory", "");
+    onUpdate("questionLevel", "");
   };
 
   return (
@@ -71,8 +71,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             Category *
           </label>
           <select
-            value={question.category}
-            onChange={(e) => onUpdate("category", e.target.value)}
+            value={question.questionCategory}
+            onChange={(e) => onUpdate("questionCategory", e.target.value)}
             className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="">Choose a category</option>
@@ -86,8 +86,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             Difficulty Level *
           </label>
           <select
-            value={question.level}
-            onChange={(e) => onUpdate("level", e.target.value)}
+            value={question.questionLevel}
+            onChange={(e) => onUpdate("questionLevel", e.target.value)}
             className="mt-1 w-full border border-gray-300 rounded-lg px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
           >
             <option value="">Select difficulty</option>
