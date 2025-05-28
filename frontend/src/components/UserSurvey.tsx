@@ -88,12 +88,12 @@ const UserSurvey: React.FC = () => {
 
   const handleSkip = () => {
     const updated = [...answers];
-    updated[index] = { answer: "" };
+    updated[index] = { answer: "skip" }; 
     setAnswers(updated);
-
+  
     if (index < questions.length - 1) setIndex(index + 1);
     else setView("preview");
-
+  
     setError("");
   };
 
@@ -134,6 +134,9 @@ const UserSurvey: React.FC = () => {
     }
   };
 
+  // Calculate answered questions (excluding skipped ones)
+  const answeredCount = answers.filter(a => a.answer && a.answer !== "skip").length;
+
   // Render modals / loading / errors
   if (showProficiencyModal) {
     return (
@@ -173,7 +176,10 @@ const UserSurvey: React.FC = () => {
                   }`}
                 >
                   <span>Question {i + 1}</span>
-                  {answers[i]?.answer.trim() !== "" && <span className="w-3 h-3 bg-green-500 rounded-full" title="Answered"/>}
+                  {answers[i]?.answer && answers[i]?.answer !== "skip" && 
+                    <span className="w-3 h-3 bg-green-500 rounded-full" title="Answered"/>}
+                  {answers[i]?.answer === "skip" && 
+                    <span className="w-3 h-3 bg-gray-400 rounded-full" title="Skipped"/>}
                 </li>
               ))}
             </ul>
@@ -181,7 +187,7 @@ const UserSurvey: React.FC = () => {
           <div className="mt-4 h-2 w-full bg-purple-100 rounded">
             <div
               className="h-full bg-purple-500 rounded"
-              style={{ width: `${(answers.filter(a => a.answer.trim()).length / questions.length) * 100}%` }}
+              style={{ width: `${(answeredCount / questions.length) * 100}%` }}
             />
           </div>
         </aside>
@@ -245,7 +251,12 @@ const UserSurvey: React.FC = () => {
                   <li key={q._id}>
                     <p className="font-medium text-gray-800">Q{i + 1}. {q.question}</p>
                     <p className="text-purple-700 ml-4">
-                      {answers[i]?.answer ? `Ans: ${answers[i].answer}` : <span className="text-gray-500">Not answered</span>}
+                      {answers[i]?.answer && answers[i].answer !== "skip" 
+                        ? `Ans: ${answers[i].answer}` 
+                        : <span className="text-gray-500">
+                            {answers[i]?.answer === "skip" ? "Not answered (Skipped)" : "Not answered"}
+                          </span>
+                      }
                     </p>
                   </li>
                 ))}
