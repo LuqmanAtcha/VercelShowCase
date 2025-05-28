@@ -1,21 +1,24 @@
-name: Backend CI
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Frontend CI
 
 on:
   push:
     branches: [ "main" ]
     paths:
-      - 'backend/**' 
+      - 'frontend/**' 
   pull_request:
     branches: [ "main" ]
     paths:
-      - 'backend/**'
+      - 'frontend/**'  
 
 jobs:
   build:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./frontend 
 
     steps:
       - name: Checkout code
@@ -26,32 +29,10 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Create .env file
-        run: |
-          echo "PORT=8000" > .env
-          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
-          echo "CORS_ORIGIN=\"http://localhost:3000\"" >> .env
-          echo "API_KEY=somya" >> .env
+          cache-dependency-path: frontend/package-lock.json 
 
       - name: Install dependencies
         run: npm install
 
-      - name: Lint & Check code
-        run: |
-          echo "Running syntax check on main files"
-          node --check src/index.js
-          node --check src/app.js
-
-      - name: Test MongoDB connection
-        env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-        run: |
-          if [ -n "$MONGODB_URI" ]; then
-            echo "const mongoose = require('mongoose'); const { DB_NAME } = require('./src/constants.js'); async function testConnection() { try { await mongoose.connect(\`\${process.env.MONGODB_URI}/\${DB_NAME}\`); console.log('MongoDB connection successful'); process.exit(0); } catch (error) { console.error('MongoDB connection failed:', error); process.exit(1); } } testConnection();" > test-connection.js
-            node -r dotenv/config test-connection.js
-          else
-            echo "Skipping MongoDB connection test - MONGODB_URI not provided"
-            exit 0
-          fi
+      - name: Build project
+        run: npm run build
