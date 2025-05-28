@@ -3,14 +3,13 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 const app = express();
-// Enable CORS with credentials (cookies, auth headers)
+// Enable CORS with credentials for all origins (open CORS)
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:3000",
     credentials: true,
   })
 );
-
 app.use((req, res, next) => {
   console.log(
     `\n[${new Date().toLocaleString()}] ${req.method} ${req.originalUrl}`
