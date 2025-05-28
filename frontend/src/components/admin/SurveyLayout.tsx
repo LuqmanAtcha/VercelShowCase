@@ -66,7 +66,11 @@ const SurveyLayout: React.FC<SurveyLayoutProps> = ({
         currentIndex={currentIndex}
         onSelect={onSelectQuestion}
         onAdd={onAddQuestion}
+        onDeleteAll={() => {
+          console.log("Delete All clicked");
+        }}
         completedCount={completedCount}
+        levelLabel="TEST"
       />
       <div className="lg:col-span-3">
         <h1 className="text-2xl font-bold">{formTitle}</h1>
