@@ -28,7 +28,8 @@ const UserSurvey: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<AnswerObj[]>([]);
   const [view, setView] = useState<"survey" | "preview">("survey");
