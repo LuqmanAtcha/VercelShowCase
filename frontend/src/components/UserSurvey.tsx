@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import ProficiencyLevelModal from "./proficiencyModal.tsx";
-import LogoutPromptModal from "./LogoutPromptModal.tsx";
+import ProficiencyLevelModal from "./proficiencyModal";
+import LogoutPromptModal from "./LogoutPromptModal";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000"; // <-- fix port!
 interface Question {

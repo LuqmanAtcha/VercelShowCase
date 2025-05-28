@@ -40,7 +40,7 @@ const SurveyPage: React.FC = () => {
         Intermediate: [],
         Advanced: [],
       };
-      formatted.forEach((q) => {
+      formatted.forEach((q: Question) => {
         if (LEVELS.includes(q.questionLevel as Level)) {
           grouped[q.questionLevel as Level].push(q);
         }
