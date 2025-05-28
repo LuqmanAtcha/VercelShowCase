@@ -139,12 +139,17 @@ const SurveyPage: React.FC = () => {
     setCurrentIndex(Math.min(i, updated.length - 1));
   };
 
-  const updateQuestion = (field: keyof Question, val: string) => {
-    const copy = [...questions];
-    copy[currentIndex] = { ...copy[currentIndex], [field]: val };
-    updateTabQuestions(copy);
-    setError("");
-  };
+const updateQuestion = (field: keyof Question, val: string) => {
+  const copy = [...questions];
+  copy[currentIndex] = { ...copy[currentIndex], [field]: val };
+  updateTabQuestions(copy);
+  
+  if (field === "questionLevel" && LEVELS.includes(val as Level)) {
+    setCurrentTab(val as Level);
+    setCurrentIndex(0);
+  }
+  setError("");
+};
 
   const handleDeleteAllQuestions = async () => {
     if (
