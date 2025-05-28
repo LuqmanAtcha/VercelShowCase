@@ -10,7 +10,7 @@ import {
 import LoginPage from "./components/LoginPage";
 import NotFound from "./components/NotFound";
 import UserSurvey from "./components/UserSurvey";
-import AnalyticsPage from "./components/AnalyticsPage";
+import AnalyticsPage from "./components/analytics/AnalyticsPage";
 import SurveyPage from "./components/admin/SurveyPage"; // <--- Add this import
 
 const ADMIN_PASSWORD = "admin123";
