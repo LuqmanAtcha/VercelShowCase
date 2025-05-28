@@ -24,7 +24,6 @@ const UserSurvey: React.FC = () => {
   const user = location.state?.user || { name: "Guest", isAnonymous: true };
   const [proficiency, setProficiency] = useState<string>("");
   const [showProficiencyModal, setShowProficiencyModal] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
