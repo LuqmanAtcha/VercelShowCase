@@ -6,24 +6,32 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 
 // Add question (duplicate check removed)
 const addQuestions = asyncHandler(async (req, res) => {
-  const { question, questionType } = req.body;
+  console.log("[addQuestions] Payload:", req.body);
+
+  // NOW extracts all required fields
+  const { question, questionType, questionCategory, questionLevel } = req.body;
 
   if (
     typeof question !== "string" ||
     typeof questionType !== "string" ||
+    typeof questionCategory !== "string" ||
+    typeof questionLevel !== "string" ||
     !question.trim() ||
-    !questionType.trim()
+    !questionType.trim() ||
+    !questionCategory.trim() ||
+    !questionLevel.trim()
   ) {
     throw new ApiError(400, "All fields are required");
   }
 
   const normalizedQuestion = question.toLowerCase().trim();
 
-  // NO DUPLICATE CHECK HERE
-
+  // Now stores category and level too!
   const questionObj = await Question.create({
     question: normalizedQuestion,
     questionType,
+    questionCategory,
+    questionLevel,
   });
 
   const questionCreated = await Question.findById(questionObj._id);
@@ -32,17 +40,23 @@ const addQuestions = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Something went wrong while adding Question to DB");
   }
 
-  return res.status(201).json(
-    new ApiResponse(
-      200,
-      questionCreated,
-      "Question added to DB successfully "
-    )
-  );
+  console.log("[addQuestions] Created question:", questionCreated);
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(
+        200,
+        questionCreated,
+        "Question added to DB successfully "
+      )
+    );
 });
 
-// Get questions (with pagination)
+// The rest of your controller code remains unchanged...
+
 const getQuestion = asyncHandler(async (req, res) => {
+  console.log("[getQuestion] Query:", req.query);
+
   const page = Number(req.query.page) || 1;
   const limit = 10;
   const skip = (page - 1) * limit;
@@ -52,6 +66,8 @@ const getQuestion = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
+
+  console.log("[getQuestion] Result:", questions);
 
   if (questions.length === 0) {
     return res.status(404).json(new ApiError(404, "No questions Found"));
@@ -64,7 +80,15 @@ const getQuestion = asyncHandler(async (req, res) => {
 
 // Update question by ID
 const updateQuestionById = asyncHandler(async (req, res) => {
-  const { questionID, question, questionCategory, questionType, questionLevel } = req.body;
+  console.log("[updateQuestionById] Payload:", req.body);
+
+  const {
+    questionID,
+    question,
+    questionCategory,
+    questionType,
+    questionLevel,
+  } = req.body;
   const queryQuestion = await Question.findByIdAndUpdate(
     questionID,
     {
@@ -78,8 +102,12 @@ const updateQuestionById = asyncHandler(async (req, res) => {
     { new: true }
   );
 
+  console.log("[updateQuestionById] Updated question:", queryQuestion);
+
   if (!queryQuestion) {
-    return res.status(404).json(new ApiError(404, "Specified Question Not Found"));
+    return res
+      .status(404)
+      .json(new ApiError(404, "Specified Question Not Found"));
   }
 
   return res
@@ -89,8 +117,12 @@ const updateQuestionById = asyncHandler(async (req, res) => {
 
 // Delete question by ID
 const deleteQuestionById = asyncHandler(async (req, res) => {
+  console.log("[deleteQuestionById] Payload:", req.body);
+
   const { questionID } = req.body;
   const question = await Question.deleteOne({ _id: questionID });
+
+  console.log("[deleteQuestionById] Result:", question);
 
   if (question.deletedCount === 0) {
     return res.status(404).json(new ApiError(404, "No questions were deleted"));
@@ -102,19 +134,20 @@ const deleteQuestionById = asyncHandler(async (req, res) => {
 
 // Add answer to question
 const addAnswerToQuestion = asyncHandler(async (req, res) => {
+  console.log("[addAnswerToQuestion] Payload:", req.body);
+
   const { questionID, answerText } = req.body;
 
-  if (
-    typeof questionID !== "string" ||
-    typeof answerText !== "string" ||
-    !questionID.trim() ||
-    !answerText.trim()
-  ) {
-    throw new ApiError(400, "All fields are required");
+  // --- FIXED LOGIC: only require questionID
+  if (typeof questionID !== "string" || !questionID.trim()) {
+    throw new ApiError(400, "questionID is required");
   }
 
+  // answerText can be "" (skipped)
   const answerObj = new Answer({
-    answer: answerText.toLowerCase().trim(),
+    answer: (typeof answerText === "string" ? answerText : "")
+      .toLowerCase()
+      .trim(),
   });
 
   const question = await Question.findByIdAndUpdate(
@@ -123,15 +156,21 @@ const addAnswerToQuestion = asyncHandler(async (req, res) => {
     { new: true }
   );
 
+  console.log("[addAnswerToQuestion] Updated question:", question);
+
   if (!question) {
     throw new ApiError(404, "Question not found");
   }
 
-  return res.status(200).json(new ApiResponse(200, answerObj, "Answer added successfully"));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, answerObj, "Answer added successfully"));
 });
 
 // Delete answer by ID
 const deleteAnswerByID = asyncHandler(async (req, res) => {
+  console.log("[deleteAnswerByID] Payload:", req.body);
+
   const { questionID, answerID } = req.body;
 
   if (
@@ -149,15 +188,21 @@ const deleteAnswerByID = asyncHandler(async (req, res) => {
     { new: true }
   );
 
+  console.log("[deleteAnswerByID] Updated question:", question);
+
   if (!question) {
     throw new ApiError(404, "Question not found or answer not found");
   }
 
-  return res.status(200).json(new ApiResponse(200, question, "Answer deleted successfully"));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, question, "Answer deleted successfully"));
 });
 
 // Get all answers for a question
 const getAnswersByQuestionId = asyncHandler(async (req, res) => {
+  console.log("[getAnswersByQuestionId] Params:", req.params);
+
   const { questionID } = req.params;
 
   if (!questionID) {
@@ -166,13 +211,17 @@ const getAnswersByQuestionId = asyncHandler(async (req, res) => {
 
   const question = await Question.findById(questionID).select("answers");
 
+  console.log("[getAnswersByQuestionId] Result:", question);
+
   if (!question) {
     return res.status(404).json(new ApiError(404, "Question not found"));
   }
 
   return res
     .status(200)
-    .json(new ApiResponse(200, question.answers, "Answers fetched successfully"));
+    .json(
+      new ApiResponse(200, question.answers, "Answers fetched successfully")
+    );
 });
 
 export {

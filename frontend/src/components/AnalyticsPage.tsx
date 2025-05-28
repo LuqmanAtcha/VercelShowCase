@@ -26,21 +26,33 @@ const AnalyticsPage: React.FC = () => {
       setLoading(true);
       setErr(null);
       try {
+        // 1. Fetch all questions
         const qRes = await fetch(`${API}/api/v1/questions?page=1`, {
-          headers: { "x-api-key": API_KEY }
+          headers: { "x-api-key": API_KEY },
         });
         const qData = await qRes.json();
-        if (!qRes.ok)
-          throw new Error(qData?.error || "Failed to fetch questions");
-        setQuestions(qData.questions || []);
+        if (!qRes.ok) throw new Error(qData?.error || "Failed to fetch questions");
+        const questionList = qData.data || qData.questions || [];
+        setQuestions(questionList);
 
-        const aRes = await fetch(`${API}/api/v1/answers?page=1`, {
-          headers: { "x-api-key": API_KEY }
-        });
-        const aData = await aRes.json();
-        if (!aRes.ok)
-          throw new Error(aData?.error || "Failed to fetch answers");
-        setAnswers(aData.answers || []);
+        // 2. For each question, fetch all answers
+        let allAnswers: Answer[] = [];
+        for (const q of questionList) {
+          const ansRes = await fetch(`${API}/api/v1/answers/answers/${q._id}`, {
+            headers: { "x-api-key": API_KEY },
+          });
+          const ansData = await ansRes.json();
+          if (ansRes.ok && Array.isArray(ansData.data)) {
+            allAnswers.push(
+              ...ansData.data.map((a: any) => ({
+                _id: a._id,
+                questionId: q._id,
+                answer: a.answer,
+              }))
+            );
+          }
+        }
+        setAnswers(allAnswers);
       } catch (e: any) {
         setErr(e.message || "Error loading data");
       }
@@ -51,8 +63,7 @@ const AnalyticsPage: React.FC = () => {
 
   // Helpers
   const getQuestionText = (questionId: string) =>
-    questions.find((q) => q._id === questionId)?.question ||
-    "Question not found";
+    questions.find((q) => q._id === questionId)?.question || "Question not found";
 
   const getAnswerCountForQuestion = (questionId: string) =>
     answers.filter((a) => a.questionId === questionId).length;

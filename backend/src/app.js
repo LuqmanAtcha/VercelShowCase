@@ -11,6 +11,19 @@ app.use(
   })
 );
 
+app.use((req, res, next) => {
+  console.log(
+    `\n[${new Date().toLocaleString()}] ${req.method} ${req.originalUrl}`
+  );
+  if (Object.keys(req.body || {}).length) {
+    console.log("Body:", req.body);
+  }
+  if (Object.keys(req.query || {}).length) {
+    console.log("Query:", req.query);
+  }
+  next();
+});
+
 // Parse incoming JSON requests (up to 20kb)
 app.use(express.json({ limit: "20kb" }));
 

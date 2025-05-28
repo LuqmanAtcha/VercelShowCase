@@ -1,10 +1,11 @@
+// SurveyLayout.tsx
 import React from "react";
-import { Sidebar } from "./Sidebar.tsx";
+import {Sidebar} from "./Sidebar.tsx";
 import { QuestionCard } from "./QuestionCard.tsx";
 import { PreviewModal } from "./PreviewModal.tsx";
 import { Header } from "./Header.tsx";
 import ErrorAlert from "./ErrorAlert.tsx";
-import { Question } from "../../type";
+import { Question } from "../../type.ts";
 
 interface SurveyLayoutProps {
   questions: Question[];
@@ -65,6 +66,7 @@ const SurveyLayout: React.FC<SurveyLayoutProps> = ({
         currentIndex={currentIndex}
         onSelect={onSelectQuestion}
         onAdd={onAddQuestion}
+        
         completedCount={completedCount}
       />
       <div className="lg:col-span-3">

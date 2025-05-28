@@ -24,6 +24,7 @@ const UserSurvey: React.FC = () => {
   const user = location.state?.user || { name: "Guest", isAnonymous: true };
   const [proficiency, setProficiency] = useState<string>("");
   const [showProficiencyModal, setShowProficiencyModal] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,32 +111,42 @@ const UserSurvey: React.FC = () => {
 
   // Send payload with questionId
   const handlePublish = async () => {
-    const payload = {
-      answers: questions.map((q, i) => ({
-        questionId: q._id,
-        answer: answers[i]?.answer || "",
-      })),
-    };
-
+    setIsSubmitting(true); // Optionally, add this if you have an isSubmitting state
     try {
-      const res = await fetch(`${API}/api/v1/answer`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          // "x-api-key": API_KEY,
-        },
-        body: JSON.stringify(payload),
-      });
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        const answerText = answers[i]?.answer ?? ""; // Empty string if skipped
 
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data?.error || "Failed to submit answers");
-        return;
+        if (!q._id) continue; // Skip questions with missing IDs
+
+        const payload = {
+          questionID: q._id,
+          answerText,
+        };
+
+        const res = await fetch(`${API}/api/v1/answers/answer`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        // Error for any individual answer
+        if (!res.ok) {
+          const data = await res.json();
+          alert(data?.error || `Failed to submit answer for question ${i + 1}`);
+          setIsSubmitting(false);
+          return;
+        }
       }
+
       alert("Survey Submitted! Thank you.");
       navigate("/login");
     } catch {
       alert("Network error – could not submit.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
