@@ -325,6 +325,39 @@ const UserSurvey: React.FC = () => {
               </div>
             </div>
           ) : (
+            <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-xl text-center">
+              <h2 className="text-xl font-bold text-purple-700 mb-6">
+                Preview Your Answers
+              </h2>
+              <ul className="text-left mb-6 space-y-4">
+                {questions.map((q, i) => (
+                  <li key={q._id}>
+                    <p className="font-medium text-gray-800">
+                      Q{i + 1}. {q.question}
+                    </p>
+                    <p className="text-purple-700 ml-4">
+                      {answers[i]?.answer ? (
+                        <>Ans: {answers[i].answer}</>
+                      ) : (
+                        <span className="text-gray-500">Not answered</span>
+                      )}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={handlePublish}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded mr-4"
+              >
+                Publish
+              </button>
+              <button
+                onClick={() => setView("survey")}
+                className="bg-gray-300 hover:bg-gray-400 text-black px-6 py-2 rounded"
+              >
+                Back to Survey
+              </button>
+            </div>
           )}
         </main>
       </div>
