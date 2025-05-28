@@ -164,8 +164,15 @@ const SurveyPage: React.FC = () => {
     }
     fetchQuestions();
   };
-
   const handlePublish = useCallback(async () => {
+    if (
+      !window.confirm(
+        "⚠️ This will create a new form, and all past answers and questions will be permanently deleted. Do you want to continue?"
+      )
+    ) {
+      return;
+    }
+
     setIsSubmitting(true);
     setError("");
 
@@ -185,12 +192,28 @@ const SurveyPage: React.FC = () => {
     }
 
     try {
-      await fetch(`${API}/api/v1/questions`, {
+      // 1️⃣ Get all existing questions from backend
+      const res = await fetch(`${API}/api/v1/questions?page=1`);
+      const data = await res.json();
+      const existingQuestions = data.data || [];
+
+      // 2️⃣ Delete each question one by one
+      for (const q of existingQuestions) {
+        await fetch(`${API}/api/v1/questions`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ questionID: q._id }),
+        });
+      }
+
+      // 3️⃣ Delete all answers
+      await fetch(`${API}/api/v1/answers`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ _id: "ALL" }),
       });
 
+      // 4️⃣ Post new questions
       for (const q of allQuestions) {
         await fetch(`${API}/api/v1/questions/surveyQuestions`, {
           method: "POST",
@@ -203,8 +226,9 @@ const SurveyPage: React.FC = () => {
           }),
         });
       }
-      alert("Survey published successfully!");
-      fetchQuestions();
+
+      await fetchQuestions();
+      alert("✅ Survey published successfully!");
     } catch (err: any) {
       setError(err.message || "Failed to publish survey.");
     }
