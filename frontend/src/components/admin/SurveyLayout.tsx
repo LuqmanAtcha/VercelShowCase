@@ -1,9 +1,10 @@
+// SurveyLayout.tsx
 import React from "react";
-import { Sidebar } from "./Sidebar.tsx";
-import { QuestionCard } from "./QuestionCard.tsx";
-import { PreviewModal } from "./PreviewModal.tsx";
-import { Header } from "./Header.tsx";
-import ErrorAlert from "./ErrorAlert.tsx";
+import { Sidebar } from "./Sidebar";
+import { QuestionCard } from "./QuestionCard";
+import { PreviewModal } from "./PreviewModal";
+import { Header } from "./Header";
+import ErrorAlert from "./ErrorAlert";
 import { Question } from "../../type";
 
 interface SurveyLayoutProps {
@@ -65,7 +66,11 @@ const SurveyLayout: React.FC<SurveyLayoutProps> = ({
         currentIndex={currentIndex}
         onSelect={onSelectQuestion}
         onAdd={onAddQuestion}
+        onDeleteAll={() => {
+          console.log("Delete All clicked");
+        }}
         completedCount={completedCount}
+        levelLabel="TEST"
       />
       <div className="lg:col-span-3">
         <h1 className="text-2xl font-bold">{formTitle}</h1>
