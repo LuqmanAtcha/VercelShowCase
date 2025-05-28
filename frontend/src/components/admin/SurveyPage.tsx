@@ -28,7 +28,8 @@ const SurveyPage: React.FC = () => {
     try {
       const res = await fetch(`${API}/api/v1/questions?page=1`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Failed to fetch questions");
+      // if (!res.ok) throw new Error(data?.error || "Failed to fetch questions");
+      if (!res.ok) throw new Error(data?.error);
 
       const formatted = (data.data || []).map((q: any) => ({
         ...q,
@@ -130,7 +131,7 @@ const SurveyPage: React.FC = () => {
     if (questionToDelete.id) {
       await fetch(`${API}/api/v1/questions`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-api-key": "somya" },
         body: JSON.stringify({ questionID: questionToDelete.id }),
       });
     }
@@ -139,17 +140,17 @@ const SurveyPage: React.FC = () => {
     setCurrentIndex(Math.min(i, updated.length - 1));
   };
 
-const updateQuestion = (field: keyof Question, val: string) => {
-  const copy = [...questions];
-  copy[currentIndex] = { ...copy[currentIndex], [field]: val };
-  updateTabQuestions(copy);
-  
-  if (field === "questionLevel" && LEVELS.includes(val as Level)) {
-    setCurrentTab(val as Level);
-    setCurrentIndex(0);
-  }
-  setError("");
-};
+  const updateQuestion = (field: keyof Question, val: string) => {
+    const copy = [...questions];
+    copy[currentIndex] = { ...copy[currentIndex], [field]: val };
+    updateTabQuestions(copy);
+
+    if (field === "questionLevel" && LEVELS.includes(val as Level)) {
+      setCurrentTab(val as Level);
+      setCurrentIndex(0);
+    }
+    setError("");
+  };
 
   const handleDeleteAllQuestions = async () => {
     if (
@@ -163,7 +164,7 @@ const updateQuestion = (field: keyof Question, val: string) => {
       if (!q.id) continue;
       await fetch(`${API}/api/v1/questions`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-api-key": "somya" },
         body: JSON.stringify({ questionID: q.id }),
       });
     }
@@ -199,6 +200,7 @@ const updateQuestion = (field: keyof Question, val: string) => {
     try {
       // 1️⃣ Get all existing questions from backend
       const res = await fetch(`${API}/api/v1/questions?page=1`);
+      console.log(res);
       const data = await res.json();
       const existingQuestions = data.data || [];
 
@@ -206,7 +208,7 @@ const updateQuestion = (field: keyof Question, val: string) => {
       for (const q of existingQuestions) {
         await fetch(`${API}/api/v1/questions`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-api-key": "somya" },
           body: JSON.stringify({ questionID: q._id }),
         });
       }
@@ -214,7 +216,7 @@ const updateQuestion = (field: keyof Question, val: string) => {
       // 3️⃣ Delete all answers
       await fetch(`${API}/api/v1/answers`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-api-key": "somya" },
         body: JSON.stringify({ _id: "ALL" }),
       });
 
@@ -222,7 +224,7 @@ const updateQuestion = (field: keyof Question, val: string) => {
       for (const q of allQuestions) {
         await fetch(`${API}/api/v1/questions/surveyQuestions`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-api-key": "somya" },
           body: JSON.stringify({
             question: q.question,
             questionType: "Input",

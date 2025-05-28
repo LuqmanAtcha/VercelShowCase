@@ -28,10 +28,13 @@ const AnalyticsPage: React.FC = () => {
       try {
         // 1. Fetch all questions
         const qRes = await fetch(`${API}/api/v1/questions?page=1`, {
-          headers: { "x-api-key": API_KEY },
+          headers: { "x-api-key": "somya" },
         });
         const qData = await qRes.json();
-        if (!qRes.ok) throw new Error(qData?.error || "Failed to fetch questions");
+        if (!qRes.ok)
+          // throw new Error(qData?.error || "Failed to fetch questions");
+          throw new Error(qData?.error);
+
         const questionList = qData.data || qData.questions || [];
         setQuestions(questionList);
 
@@ -39,7 +42,7 @@ const AnalyticsPage: React.FC = () => {
         let allAnswers: Answer[] = [];
         for (const q of questionList) {
           const ansRes = await fetch(`${API}/api/v1/answers/answers/${q._id}`, {
-            headers: { "x-api-key": API_KEY },
+            headers: { "x-api-key": "somya" },
           });
           const ansData = await ansRes.json();
           if (ansRes.ok && Array.isArray(ansData.data)) {
@@ -63,7 +66,8 @@ const AnalyticsPage: React.FC = () => {
 
   // Helpers
   const getQuestionText = (questionId: string) =>
-    questions.find((q) => q._id === questionId)?.question || "Question not found";
+    questions.find((q) => q._id === questionId)?.question ||
+    "Question not found";
 
   const getAnswerCountForQuestion = (questionId: string) =>
     answers.filter((a) => a.questionId === questionId).length;
