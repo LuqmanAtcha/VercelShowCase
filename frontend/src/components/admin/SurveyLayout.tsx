@@ -4,7 +4,7 @@ import { QuestionCard } from "./QuestionCard";
 import { PreviewModal } from "./PreviewModal";
 import { Header } from "./Header";
 import ErrorAlert from "../common/ErrorAlert";
-import { Question } from "../../type";
+import { Question } from "../../types";
 
 const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
 type Level = (typeof LEVELS)[number];
