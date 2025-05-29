@@ -1,22 +1,26 @@
-// src/type.ts
+// src/types.ts
 export interface Question {
-  id?: string;
+  _id: string; // Changed from 'id' to '_id'
   question: string;
   questionType: string;
-  questionCategory: string; // <-- use backend field name
-  questionLevel: string;    // <-- use backend field name
-
+  questionCategory: string;
+  questionLevel: string;
 }
 
+export interface Answer {
+  _id: string; // Changed from 'id' to '_id'
+  questionId: string;
+  answer: string;
+}
 
 export interface User {
   name: string;
   isAnonymous: boolean;
-  role: 'participant' | 'admin';
+  role: "participant" | "admin";
 }
 
 export interface Survey {
-  id: string;
+  _id: string; // Changed from 'id' to '_id'  
   title: string;
   description: string;
   questions: Question[];
