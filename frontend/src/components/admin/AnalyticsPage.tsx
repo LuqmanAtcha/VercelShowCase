@@ -23,10 +23,11 @@ ChartJS.register(
   ArcElement
 );
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
-const API_KEY = "onn32q43QijfewnS20in2siu!$d24324ckxf";
+interface AnalyticsPageProps {
+  fetchAllQuestionsAndAnswers: () => Promise<{ questions: Question[]; answers: Answer[] }>;
+}
 
-const AnalyticsPage: React.FC = () => {
+const AnalyticsPage: React.FC<AnalyticsPageProps> = ({ fetchAllQuestionsAndAnswers }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,40 +39,11 @@ const AnalyticsPage: React.FC = () => {
     setLoading(true);
     setErr(null);
     try {
-      const qRes = await fetch(`${API}/api/v1/questions?page=1`, {
-        headers: { "x-api-key": API_KEY },
-      });
-      const qData = await qRes.json();
-      if (!qRes.ok)
-        throw new Error(qData?.error || "Failed to fetch questions");
+      const { questions, answers } = await fetchAllQuestionsAndAnswers();
+      setQuestions(questions);
+      setAnswers(answers);
 
-      const questionList = qData.data || qData.questions || [];
-      setQuestions(questionList);
-
-      let allAnswers: Answer[] = [];
-      for (const q of questionList) {
-        try {
-          const ansRes = await fetch(`${API}/api/v1/answers/answers/${q._id}`, {
-            headers: { "x-api-key": API_KEY },
-          });
-          const ansData = await ansRes.json();
-          if (ansRes.ok && Array.isArray(ansData.data)) {
-            allAnswers.push(
-              ...ansData.data.map((a: any) => ({
-                _id: a._id,
-                questionId: q._id,
-                answer: a.answer,
-                createdAt: a.createdAt,
-              }))
-            );
-          }
-        } catch (err) {
-          console.warn(`Skipping question ${q._id} due to error.`);
-        }
-      }
-      setAnswers(allAnswers);
-
-      const sorted = [...allAnswers].sort((a, b) => {
+      const sorted = [...answers].sort((a, b) => {
         const t1 = new Date(a.createdAt || '').getTime();
         const t2 = new Date(b.createdAt || '').getTime();
         return t2 - t1;
@@ -127,15 +99,13 @@ const AnalyticsPage: React.FC = () => {
   const overallSkipRate =
     totalResponses > 0 ? ((totalSkipped / totalResponses) * 100).toFixed(1) : "0.0";
 
-  let mostAnsweredQID = "";
-  let mostAnswers = 0;
-  for (const [qID, count] of Object.entries(answerCounts)) {
-    if (count > mostAnswers) {
-      mostAnsweredQID = qID;
-      mostAnswers = count;
-    }
-  }
-  const mostAnsweredText = questions.find((q) => q._id === mostAnsweredQID)?.question || "None";
+  const leaderboard = questions
+    .map((q) => ({
+      question: q.question,
+      responses: answerCounts[q._id] || 0,
+    }))
+    .sort((a, b) => b.responses - a.responses)
+    .slice(0, 5);
 
   const categoryChartData = {
     labels: predefinedCategories,
@@ -158,14 +128,6 @@ const AnalyticsPage: React.FC = () => {
       },
     ],
   };
-
-  const leaderboard = questions
-    .map((q) => ({
-      question: q.question,
-      responses: answerCounts[q._id] || 0,
-    }))
-    .sort((a, b) => b.responses - a.responses)
-    .slice(0, 5);
 
   return (
     <div className="p-6 space-y-6">
