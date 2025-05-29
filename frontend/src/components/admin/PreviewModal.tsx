@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { X } from "lucide-react";
-import { Question } from "../../type";
+import { Question } from "../../types";
 
 interface PreviewModalProps {
   title: string;
@@ -12,7 +12,10 @@ interface PreviewModalProps {
   completedCount: number;
 }
 
-const QuestionItem: React.FC<{ q: Question; index: number }> = ({ q, index }) => (
+const QuestionItem: React.FC<{ q: Question; index: number }> = ({
+  q,
+  index,
+}) => (
   <li className="border rounded p-4">
     <div className="flex justify-between items-center mb-2">
       <span className="font-medium">Question {index + 1}</span>
@@ -52,7 +55,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
 
   const questionList = useMemo(() => {
     return questions.map((q, idx) => (
-      <QuestionItem key={q.id || idx} q={q} index={idx} />
+      <QuestionItem key={q._id} q={q} index={idx} />
     ));
   }, [questions]);
 

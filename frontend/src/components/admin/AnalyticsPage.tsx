@@ -1,19 +1,7 @@
 import React, { useEffect, useState } from "react";
-
+import { Question, Answer } from "../../types";
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
 const API_KEY = "onn32q43QijfewnS20in2siu!$d24324ckxf";
-
-interface Question {
-  _id: string;
-  question: string;
-  questionCategory: string;
-  questionLevel: string;
-}
-interface Answer {
-  _id: string;
-  questionId: string;
-  answer: string;
-}
 
 const AnalyticsPage: React.FC = () => {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -31,7 +19,8 @@ const AnalyticsPage: React.FC = () => {
           headers: { "x-api-key": API_KEY },
         });
         const qData = await qRes.json();
-        if (!qRes.ok) throw new Error(qData?.error || "Failed to fetch questions");
+        if (!qRes.ok)
+          throw new Error(qData?.error || "Failed to fetch questions");
         const questionList = qData.data || qData.questions || [];
         setQuestions(questionList);
 
@@ -63,7 +52,8 @@ const AnalyticsPage: React.FC = () => {
 
   // Helpers
   const getQuestionText = (questionId: string) =>
-    questions.find((q) => q._id === questionId)?.question || "Question not found";
+    questions.find((q) => q._id === questionId)?.question ||
+    "Question not found";
 
   const getAnswerCountForQuestion = (questionId: string) =>
     answers.filter((a) => a.questionId === questionId).length;
