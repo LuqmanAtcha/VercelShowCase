@@ -12,7 +12,7 @@ Before running the project, make sure you **update the following configuration f
 ### 1️⃣ Database Name
 
 * Go to:
-  `/backend/src/config/constants.js`
+  `/backend/src/constants.js`
 
 * Update the database name to match your local or remote MongoDB instance.
 
