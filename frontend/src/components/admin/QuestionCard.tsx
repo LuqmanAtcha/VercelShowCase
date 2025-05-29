@@ -78,9 +78,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
 
         {/* Question Text */}
         <div className="space-y-3">
-          <label className="block text-sm font-semibold text-gray-900">
-            Question Text <span className="text-red-500">*</span>
-          </label>
+          
           <div className="relative">
             <textarea
               rows={4}
