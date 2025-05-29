@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react";
-import { useSurveyApi } from "../userSurveyApi";
+import { useSurveyApi } from "../useUserSurveyApi";
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -67,28 +67,27 @@ describe("useSurveyApi", () => {
 
     expect(result.current.questionsByLevel.Beginner[0]).toEqual(newQuestion);
   });
-test("deleteAllQuestions calls delete API", async () => {
-  (fetch as jest.Mock).mockResolvedValue({ ok: true });
+  test("deleteAllQuestions calls delete API", async () => {
+    (fetch as jest.Mock).mockResolvedValue({ ok: true });
 
-  const { result } = renderHook(() => useSurveyApi());
+    const { result } = renderHook(() => useSurveyApi());
 
-  const questions = [{ id: "1" }, { id: "2" }] as any;
+    const questions = [{ id: "1" }, { id: "2" }] as any;
 
-  await act(async () => {
-    await result.current.deleteAllQuestions(questions);
+    await act(async () => {
+      await result.current.deleteAllQuestions(questions);
+    });
+
+    const deleteCalls = (fetch as jest.Mock).mock.calls.filter(
+      ([url, options]) => options.method === "DELETE"
+    );
+
+    expect(deleteCalls).toHaveLength(2);
+    deleteCalls.forEach(([url, options]) => {
+      expect(url).toContain("/api/v1/questions");
+      expect(options.method).toBe("DELETE");
+    });
   });
-
-  const deleteCalls = (fetch as jest.Mock).mock.calls.filter(
-    ([url, options]) => options.method === "DELETE"
-  );
-
-  expect(deleteCalls).toHaveLength(2);
-  deleteCalls.forEach(([url, options]) => {
-    expect(url).toContain("/api/v1/questions");
-    expect(options.method).toBe("DELETE");
-  });
-});
-
 
   test("publishSurvey deletes old + posts new", async () => {
     (fetch as jest.Mock)
