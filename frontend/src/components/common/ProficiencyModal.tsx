@@ -1,13 +1,13 @@
 import React from "react";
 
-interface ProficiencyLevelModalProps {
+interface ProficiencyModalProps {
   show: boolean;
   proficiency: string;
   setProficiency: (level: string) => void;
   onConfirm: () => void;
 }
 
-const ProficiencyLevelModal: React.FC<ProficiencyLevelModalProps> = ({
+const ProficiencyModal: React.FC<ProficiencyModalProps> = ({
   show,
   proficiency,
   setProficiency,
@@ -49,4 +49,4 @@ const ProficiencyLevelModal: React.FC<ProficiencyLevelModalProps> = ({
   );
 };
 
-export default ProficiencyLevelModal;
+export default ProficiencyModal;

@@ -7,10 +7,10 @@ import {
   Navigate,
 } from "react-router-dom";
 
-import LoginPage from "./components/LoginPage";
-import NotFound from "./components/NotFound";
+import LoginPage from "./components/auth/LoginPage";
+import NotFound from "./components/common/NotFound";
 import UserSurvey from "./components/UserSurvey";
-import AnalyticsPage from "./components/AnalyticsPage";
+import AnalyticsPage from "./components/admin/AnalyticsPage";
 import SurveyPage from "./components/admin/SurveyPage"; // <--- Add this import
 
 const ADMIN_PASSWORD = "admin123";

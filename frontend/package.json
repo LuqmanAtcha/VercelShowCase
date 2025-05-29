@@ -5,8 +5,6 @@
   "homepage": "https://ksmasoun.github.io/sbna-gameshow-form/",
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
@@ -28,8 +26,8 @@
     "deploy": "gh-pages -d build",
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "test": "jest --watch"
   },
   "eslintConfig": {
     "extends": [
@@ -50,11 +48,18 @@
     ]
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/jest": "^29.5.14",
     "autoprefixer": "^10.4.21",
     "gh-pages": "^6.3.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.0.0-beta.3",
+    "jest-fetch-mock": "^3.0.3",
     "nodemon": "^3.1.10",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
+    "ts-jest": "^29.3.4",
     "typescript": "^4.9.5"
   },
   "description": "",
@@ -69,5 +74,12 @@
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/ksmasoun/sbna-gameshow-form/issues"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "setupFilesAfterEnv": [
+      "<rootDir>/src/setupTests.ts"
+    ],
+    "testEnvironment": "jsdom"
   }
 }

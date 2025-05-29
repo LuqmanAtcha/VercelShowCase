@@ -1,12 +1,12 @@
 import React from "react";
 
-interface LogoutPromptModalProps {
+interface LogoutPromptProps {
   show: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-const LogoutPromptModal: React.FC<LogoutPromptModalProps> = ({
+const LogoutPrompt: React.FC<LogoutPromptProps> = ({
   show,
   onConfirm,
   onCancel,
@@ -36,4 +36,4 @@ const LogoutPromptModal: React.FC<LogoutPromptModalProps> = ({
   );
 };
 
-export default LogoutPromptModal;
+export default LogoutPrompt;

@@ -1,5 +1,4 @@
-// src/components/admin/PreviewModal.tsx
-import React from "react";
+import React, { useMemo } from "react";
 import { X } from "lucide-react";
 import { Question } from "../../type";
 
@@ -12,6 +11,24 @@ interface PreviewModalProps {
   isPublishing: boolean;
   completedCount: number;
 }
+
+const QuestionItem: React.FC<{ q: Question; index: number }> = ({ q, index }) => (
+  <li className="border rounded p-4">
+    <div className="flex justify-between items-center mb-2">
+      <span className="font-medium">Question {index + 1}</span>
+      <span className="text-sm text-gray-500">
+        {q.questionCategory || "—"} / {q.questionLevel || "—"}
+      </span>
+    </div>
+    <p className="text-gray-800">
+      {q.question.trim() ? (
+        q.question
+      ) : (
+        <span className="italic text-gray-400">No text</span>
+      )}
+    </p>
+  </li>
+);
 
 export const PreviewModal: React.FC<PreviewModalProps> = ({
   title,
@@ -32,6 +49,12 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
     if (completedCount === 0) return;
     onPublish();
   };
+
+  const questionList = useMemo(() => {
+    return questions.map((q, idx) => (
+      <QuestionItem key={q.id || idx} q={q} index={idx} />
+    ));
+  }, [questions]);
 
   return (
     <div
@@ -56,25 +79,7 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
               No questions added yet.
             </p>
           ) : (
-            <ul className="space-y-4">
-              {questions.map((q, idx) => (
-                <li key={q.id} className="border rounded p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium">Question {idx + 1}</span>
-                    <span className="text-sm text-gray-500">
-                      {q.questionCategory || "—"} / {q.questionLevel || "—"}
-                    </span>
-                  </div>
-                  <p className="text-gray-800">
-                    {q.question.trim() ? (
-                      q.question
-                    ) : (
-                      <span className="italic text-gray-400">No text</span>
-                    )}
-                  </p>
-                </li>
-              ))}
-            </ul>
+            <ul className="space-y-4">{questionList}</ul>
           )}
         </div>
         <div className="px-6 py-4 border-t flex items-center justify-between">

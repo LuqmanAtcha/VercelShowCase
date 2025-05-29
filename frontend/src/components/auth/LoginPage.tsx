@@ -6,11 +6,15 @@ export interface LoginPageProps {
   adminError?: string;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onParticipant, onAdmin, adminError }) => {
+const LoginPage: React.FC<LoginPageProps> = ({
+  onParticipant,
+  onAdmin,
+  adminError,
+}) => {
   const [name, setName] = useState("");
   const [password, setPassword] = useState(""); // for admin
   const [anonymous, setAnonymous] = useState(false);
-  const [tab, setTab] = useState<'participant' | 'admin'>('participant');
+  const [tab, setTab] = useState<"participant" | "admin">("participant");
   const [error, setError] = useState("");
 
   const handleLogin = () => {
@@ -48,27 +52,35 @@ const LoginPage: React.FC<LoginPageProps> = ({ onParticipant, onAdmin, adminErro
         <div className="flex mb-6">
           <button
             className={`flex-1 py-2 rounded-l-lg font-semibold text-lg ${
-              tab === 'participant'
+              tab === "participant"
                 ? "bg-purple-100 text-purple-700"
                 : "bg-gray-100 text-gray-500"
             }`}
-            onClick={() => { setTab("participant"); setError(""); setPassword(""); }}
+            onClick={() => {
+              setTab("participant");
+              setError("");
+              setPassword("");
+            }}
           >
             Participant
           </button>
           <button
             className={`flex-1 py-2 rounded-r-lg font-semibold text-lg ${
-              tab === 'admin'
+              tab === "admin"
                 ? "bg-purple-100 text-purple-700"
                 : "bg-gray-100 text-gray-500"
             }`}
-            onClick={() => { setTab("admin"); setError(""); setAnonymous(false); }}
+            onClick={() => {
+              setTab("admin");
+              setError("");
+              setAnonymous(false);
+            }}
           >
             Admin
           </button>
         </div>
         <h2 className="text-2xl font-bold text-center mb-6">
-          {tab === 'participant' ? "Participant Login" : "Admin Login"}
+          {tab === "participant" ? "Participant Login" : "Admin Login"}
         </h2>
         <form
           onSubmit={(e) => {
@@ -82,20 +94,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onParticipant, onAdmin, adminErro
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={tab === 'participant' ? "Your Name" : "Admin Name"}
+              onKeyDown={handleKeyPress}
+              placeholder={tab === "participant" ? "Your Name" : "Admin Name"}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               autoComplete="name"
-              disabled={tab === 'participant' && anonymous}
-
+              disabled={tab === "participant" && anonymous}
             />
           </div>
-          {tab === 'admin' && (
+          {tab === "admin" && (
             <div>
               <input
                 type="password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Password"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -103,7 +114,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onParticipant, onAdmin, adminErro
               />
             </div>
           )}
-          {tab === 'participant' && (
+          {tab === "participant" && (
             <div>
               <label className="inline-flex items-center cursor-pointer">
                 <input
@@ -120,7 +131,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onParticipant, onAdmin, adminErro
             type="submit"
             className="w-full bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition"
           >
-            {tab === 'participant' ? "Login as Participant" : "Login as Admin"}
+            {tab === "participant" ? "Login as Participant" : "Login as Admin"}
           </button>
           {(error || (tab === "admin" && adminError)) && (
             <div className="text-red-600 text-sm mt-2 p-2 bg-red-50 border border-red-200 rounded">
