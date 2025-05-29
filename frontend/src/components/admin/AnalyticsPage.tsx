@@ -1,5 +1,28 @@
 import React, { useEffect, useState } from "react";
+import { Bar, Pie } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+} from 'chart.js';
+import { useNavigate } from "react-router-dom";
 import { Question, Answer } from "../../types";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement
+);
+
 const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
 const API_KEY = "onn32q43QijfewnS20in2siu!$d24324ckxf";
 
@@ -8,25 +31,26 @@ const AnalyticsPage: React.FC = () => {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [recentAnsweredIds, setRecentAnsweredIds] = useState<Set<string>>(new Set());
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setErr(null);
-      try {
-        // 1. Fetch all questions
-        const qRes = await fetch(`${API}/api/v1/questions?page=1`, {
-          headers: { "x-api-key": API_KEY },
-        });
-        const qData = await qRes.json();
-        if (!qRes.ok)
-          throw new Error(qData?.error || "Failed to fetch questions");
-        const questionList = qData.data || qData.questions || [];
-        setQuestions(questionList);
+  const fetchData = async () => {
+    setLoading(true);
+    setErr(null);
+    try {
+      const qRes = await fetch(`${API}/api/v1/questions?page=1`, {
+        headers: { "x-api-key": API_KEY },
+      });
+      const qData = await qRes.json();
+      if (!qRes.ok)
+        throw new Error(qData?.error || "Failed to fetch questions");
 
-        // 2. For each question, fetch all answers
-        let allAnswers: Answer[] = [];
-        for (const q of questionList) {
+      const questionList = qData.data || qData.questions || [];
+      setQuestions(questionList);
+
+      let allAnswers: Answer[] = [];
+      for (const q of questionList) {
+        try {
           const ansRes = await fetch(`${API}/api/v1/answers/answers/${q._id}`, {
             headers: { "x-api-key": API_KEY },
           });
@@ -37,192 +61,212 @@ const AnalyticsPage: React.FC = () => {
                 _id: a._id,
                 questionId: q._id,
                 answer: a.answer,
+                createdAt: a.createdAt,
               }))
             );
           }
+        } catch (err) {
+          console.warn(`Skipping question ${q._id} due to error.`);
         }
-        setAnswers(allAnswers);
-      } catch (e: any) {
-        setErr(e.message || "Error loading data");
       }
+      setAnswers(allAnswers);
+
+      const sorted = [...allAnswers].sort((a, b) => {
+        const t1 = new Date(a.createdAt || '').getTime();
+        const t2 = new Date(b.createdAt || '').getTime();
+        return t2 - t1;
+      });
+      const recentIds = new Set(sorted.slice(0, 5).map((a) => a.questionId));
+      setRecentAnsweredIds(recentIds);
+
+    } catch (e: any) {
+      setErr(e.message);
+    } finally {
       setLoading(false);
-    };
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
-  // Helpers
-  const getQuestionText = (questionId: string) =>
-    questions.find((q) => q._id === questionId)?.question ||
-    "Question not found";
+  const predefinedCategories = ["Grammar", "Vocabulary", "Culture"];
+  const categoryCounts: Record<string, number> = {
+    Grammar: 0,
+    Vocabulary: 0,
+    Culture: 0,
+  };
+  const levelCounts: Record<string, number> = {};
+  const answerCounts: Record<string, number> = {};
+  const skipCounts: Record<string, number> = {};
 
-  const getAnswerCountForQuestion = (questionId: string) =>
-    answers.filter((a) => a.questionId === questionId).length;
+  questions.forEach((q) => {
+    if (!categoryCounts[q.questionCategory]) {
+      categoryCounts[q.questionCategory] = 0;
+    }
+    categoryCounts[q.questionCategory]++;
+    levelCounts[q.questionLevel] = (levelCounts[q.questionLevel] || 0) + 1;
+    answerCounts[q._id] = 0;
+    skipCounts[q._id] = 0;
+  });
 
-  // --- Analysis Calculations ---
-  const totalAnswers = answers.length;
-  const totalSkipped = answers.filter((a) => a.answer.trim() === "").length;
+  answers.forEach((a) => {
+    const isSkip = a.answer.toLowerCase() === "skip" || a.answer.toLowerCase() === "skipped";
+    if (a.questionId && answerCounts[a.questionId] !== undefined) {
+      if (isSkip) {
+        skipCounts[a.questionId]++;
+      } else {
+        answerCounts[a.questionId]++;
+      }
+    }
+  });
 
-  const getSkippedCountForQuestion = (questionId: string) =>
-    answers.filter((a) => a.questionId === questionId && a.answer.trim() === "")
-      .length;
+  const totalAnswered = Object.values(answerCounts).reduce((sum, cnt) => sum + cnt, 0);
+  const totalSkipped = Object.values(skipCounts).reduce((sum, cnt) => sum + cnt, 0);
+  const totalResponses = totalAnswered + totalSkipped;
+  const overallSkipRate =
+    totalResponses > 0 ? ((totalSkipped / totalResponses) * 100).toFixed(1) : "0.0";
 
-  const getNonSkippedCountForQuestion = (questionId: string) =>
-    answers.filter((a) => a.questionId === questionId && a.answer.trim() !== "")
-      .length;
+  let mostAnsweredQID = "";
+  let mostAnswers = 0;
+  for (const [qID, count] of Object.entries(answerCounts)) {
+    if (count > mostAnswers) {
+      mostAnsweredQID = qID;
+      mostAnswers = count;
+    }
+  }
+  const mostAnsweredText = questions.find((q) => q._id === mostAnsweredQID)?.question || "None";
 
-  const categoryCounts = questions.reduce((acc: Record<string, number>, q) => {
-    acc[q.questionCategory] =
-      (acc[q.questionCategory] || 0) + getAnswerCountForQuestion(q._id);
-    return acc;
-  }, {});
-
-  const levelCounts = questions.reduce((acc: Record<string, number>, q) => {
-    acc[q.questionLevel] =
-      (acc[q.questionLevel] || 0) + getAnswerCountForQuestion(q._id);
-    return acc;
-  }, {});
-
-  const mostAnswered = questions.reduce<{ id?: string; count: number }>(
-    (acc, q) => {
-      const count = getNonSkippedCountForQuestion(q._id);
-      return count > acc.count ? { id: q._id, count } : acc;
-    },
-    { id: undefined, count: 0 }
-  );
-
-  const mostSkipped = questions.reduce<{ id?: string; count: number }>(
-    (acc, q) => {
-      const count = getSkippedCountForQuestion(q._id);
-      return count > acc.count ? { id: q._id, count } : acc;
-    },
-    { id: undefined, count: 0 }
-  );
-
-  const getSkipRate = (questionId: string) => {
-    const total = getAnswerCountForQuestion(questionId);
-    const skipped = getSkippedCountForQuestion(questionId);
-    return total > 0 ? ((skipped / total) * 100).toFixed(1) : "0.0";
+  const categoryChartData = {
+    labels: predefinedCategories,
+    datasets: [
+      {
+        label: "Questions per Category",
+        data: predefinedCategories.map((cat) => categoryCounts[cat] || 0),
+        backgroundColor: ["#6a5acd", "#ec4899", "#10b981"],
+      },
+    ],
   };
 
-  const overallSkipRate =
-    totalAnswers > 0 ? ((totalSkipped / totalAnswers) * 100).toFixed(1) : "0.0";
+  const levelChartData = {
+    labels: Object.keys(levelCounts),
+    datasets: [
+      {
+        label: "Questions per Level",
+        data: Object.values(levelCounts),
+        backgroundColor: ["#ec4899", "#3b82f6", "#8b5cf6", "#22c55e"],
+      },
+    ],
+  };
+
+  const leaderboard = questions
+    .map((q) => ({
+      question: q.question,
+      responses: answerCounts[q._id] || 0,
+    }))
+    .sort((a, b) => b.responses - a.responses)
+    .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-purple-50 p-4 max-w-5xl mx-auto">
-      <h1 className="text-xl font-bold mb-2 text-purple-700">
-        Survey Analytics (Compact View)
-      </h1>
-      {loading && <div>Loading...</div>}
-      {err && <div className="text-red-600 mb-2">{err}</div>}
-
-      {/* Summary Stats */}
-      <div className="flex flex-wrap gap-4 mb-4 text-xs">
-        <div className="bg-white p-2 rounded shadow">
-          Total Answers: <b>{totalAnswers}</b>
-        </div>
-        <div className="bg-white p-2 rounded shadow">
-          Total Skipped: <b>{totalSkipped}</b>
-        </div>
-        <div className="bg-white p-2 rounded shadow">
-          Overall Skip Rate: <b>{overallSkipRate}%</b>
-        </div>
-        <div className="bg-white p-2 rounded shadow">
-          Most Answered: <b>{getQuestionText(mostAnswered.id || "")}</b> (
-          {mostAnswered.count})
-        </div>
-        <div className="bg-white p-2 rounded shadow">
-          Most Skipped: <b>{getQuestionText(mostSkipped.id || "")}</b> (
-          {mostSkipped.count})
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Survey Analytics Dashboard</h2>
+        <div className="flex gap-2">
+          <button
+            className="bg-gray-200 px-3 py-2 rounded text-sm hover:bg-gray-300"
+            onClick={() => fetchData()}
+          >
+            🔄 Refresh Analytics
+          </button>
+          <button
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+            onClick={() => navigate(-1)}
+          >
+            ← Back
+          </button>
         </div>
       </div>
 
-      {/* Category Analysis */}
-      <div className="flex flex-wrap gap-2 mb-4 text-xs">
-        {Object.entries(categoryCounts).map(([cat, cnt]) => (
-          <div key={cat} className="bg-white p-2 rounded shadow">
-            Category <b>{cat}</b>: {cnt} responses
-          </div>
-        ))}
-      </div>
-      {/* Level Analysis */}
-      <div className="flex flex-wrap gap-2 mb-4 text-xs">
-        {Object.entries(levelCounts).map(([lvl, cnt]) => (
-          <div key={lvl} className="bg-white p-2 rounded shadow">
-            Level <b>{lvl}</b>: {cnt} responses
-          </div>
-        ))}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+        <div className="bg-white rounded shadow p-4">
+          <p className="text-sm">Total Responses</p>
+          <p className="text-xl font-bold">{totalResponses}</p>
+        </div>
+        <div className="bg-white rounded shadow p-4">
+          <p className="text-sm">Total Answered</p>
+          <p className="text-xl font-bold">{totalAnswered}</p>
+        </div>
+        <div className="bg-white rounded shadow p-4">
+          <p className="text-sm">Total Skipped</p>
+          <p className="text-xl font-bold">{totalSkipped}</p>
+        </div>
+        <div className="bg-white rounded shadow p-4">
+          <p className="text-sm">Overall Skip Rate</p>
+          <p className="text-xl font-bold">{overallSkipRate}%</p>
+        </div>
       </div>
 
-      {/* Compact Questions Table */}
-      <div className="mb-6 overflow-x-auto">
-        <h2 className="text-base font-semibold mb-1">Questions & Responses</h2>
-        <table className="text-xs w-full min-w-[600px] bg-white rounded shadow">
+      <div className="flex flex-col lg:flex-row gap-6 items-center justify-center">
+        <div className="bg-white p-4 rounded shadow w-full max-w-[500px]">
+          <Bar data={categoryChartData} options={{ responsive: true, maintainAspectRatio: false }} height={250} />
+        </div>
+        <div className="bg-white p-4 rounded shadow w-full max-w-[400px]">
+          <Pie data={levelChartData} options={{ responsive: true, maintainAspectRatio: false }} height={250} />
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded shadow">
+        <h3 className="text-xl font-semibold mb-2">Leaderboard - Top 5 Answered Questions</h3>
+        <ul className="space-y-2">
+          {leaderboard.map((item, idx) => (
+            <li key={idx} className="flex justify-between border-b pb-1">
+              <span>{item.question}</span>
+              <span className="font-semibold text-purple-700">{item.responses} answers</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="bg-white p-6 rounded shadow overflow-x-auto">
+        <h3 className="text-xl font-semibold mb-4">Responses Table</h3>
+        <table className="w-full text-left border">
           <thead>
             <tr className="bg-purple-100">
               <th className="px-2 py-1">#</th>
               <th className="px-2 py-1">Question</th>
               <th className="px-2 py-1">Category</th>
               <th className="px-2 py-1">Level</th>
-              <th className="px-2 py-1">Responses</th>
               <th className="px-2 py-1">Answered</th>
               <th className="px-2 py-1">Skipped</th>
-              <th className="px-2 py-1">Skip %</th>
+              <th className="px-2 py-1">Skip%</th>
             </tr>
           </thead>
           <tbody>
-            {questions.map((q, i) => (
-              <tr key={q._id} className="border-t">
-                <td className="px-2 py-1">{i + 1}</td>
-                <td className="px-2 py-1 max-w-[180px] truncate">
-                  {q.question}
-                </td>
-                <td className="px-2 py-1">{q.questionCategory}</td>
-                <td className="px-2 py-1">{q.questionLevel}</td>
-                <td className="px-2 py-1">
-                  {getAnswerCountForQuestion(q._id)}
-                </td>
-                <td className="px-2 py-1">
-                  {getNonSkippedCountForQuestion(q._id)}
-                </td>
-                <td className="px-2 py-1">
-                  {getSkippedCountForQuestion(q._id)}
-                </td>
-                <td className="px-2 py-1">{getSkipRate(q._id)}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Compact Answers Table */}
-      <div className="overflow-x-auto">
-        <h2 className="text-base font-semibold mb-1">Answers</h2>
-        <table className="text-xs w-full min-w-[500px] bg-white rounded shadow">
-          <thead>
-            <tr className="bg-purple-100">
-              <th className="px-2 py-1">#</th>
-              <th className="px-2 py-1">Q. ID</th>
-              <th className="px-2 py-1">Q. Text</th>
-              <th className="px-2 py-1">Answer</th>
-            </tr>
-          </thead>
-          <tbody>
-            {answers.map((a, i) => (
-              <tr key={a._id} className="border-t">
-                <td className="px-2 py-1">{i + 1}</td>
-                <td className="px-2 py-1">{a.questionId}</td>
-                <td className="px-2 py-1 max-w-[180px] truncate">
-                  {getQuestionText(a.questionId)}
-                </td>
-                <td className="px-2 py-1">
-                  {a.answer.trim() === "" ? (
-                    <span className="italic text-gray-400">Skipped</span>
-                  ) : (
-                    a.answer
-                  )}
-                </td>
-              </tr>
-            ))}
+            {questions.map((q, index) => {
+              const answeredQ = answerCounts[q._id];
+              const skippedQ = skipCounts[q._id];
+              const totalQ = answeredQ + skippedQ;
+              const skipRate = totalQ > 0 ? ((skippedQ / totalQ) * 100).toFixed(1) : "0.0";
+              return (
+                <tr
+                  key={q._id}
+                  className={`even:bg-purple-50 ${recentAnsweredIds.has(q._id) ? 'bg-yellow-100 font-semibold' : ''}`}
+                >
+                  <td className="px-2 py-1">{index + 1}</td>
+                  <td
+                    className="px-2 py-1 text-purple-600 underline cursor-pointer"
+                    onClick={() => navigate(`/analytics/question/${q._id}`)}
+                  >
+                    {q.question}
+                  </td>
+                  <td className="px-2 py-1">{q.questionCategory}</td>
+                  <td className="px-2 py-1">{q.questionLevel}</td>
+                  <td className="px-2 py-1">{answeredQ}</td>
+                  <td className="px-2 py-1">{skippedQ}</td>
+                  <td className="px-2 py-1">{skipRate}%</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
