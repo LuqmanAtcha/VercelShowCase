@@ -38,19 +38,18 @@ export const defaultHeaders = {
   "Content-Type": "application/json",
   "x-api-key": "your-api-key",
 };
-
 ```
 
 ---
 
 ### 📁 Folder Reference
 
-| Folder                    | Purpose                                                  |
-| ------------------------- | -------------------------------------------------------- |
-| `/backend`                | Express backend, MongoDB models                          |
-| `/frontend`               | React frontend (New UI branch)                           |
-| `/frontend/src/api/`      | Holds `config.ts` for API keys and settings              |
-| `/backend/src/`           | Holds `constants.js` for DB configs and backend settings |
+| Folder               | Purpose                                                  |
+| -------------------- | -------------------------------------------------------- |
+| `/backend`           | Express backend, MongoDB models                          |
+| `/frontend`          | React frontend (New UI branch)                           |
+| `/frontend/src/api/` | Holds `config.ts` for API keys and settings              |
+| `/backend/src/`      | Holds `constants.js` for DB configs and backend settings |
 
 ---
 
@@ -59,3 +58,23 @@ export const defaultHeaders = {
 * Always **check these files** before pushing or running locally.
 * Keep your **API keys private** and don’t commit sensitive keys into the repository.
 * Update `.env` files if needed, depending on your deployment setup.
+
+---
+
+### 🚀 Run Commands
+
+To run the **frontend**:
+
+```bash
+cd frontend
+npm run build
+npm start
+```
+
+To run the **backend**:
+
+```bash
+cd backend
+cd src
+npm run dev
+```
