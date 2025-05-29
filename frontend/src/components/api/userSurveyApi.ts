@@ -42,10 +42,6 @@ export async function fetchAllQuestions(): Promise<Question[]> {
   );
 }
 
-/**
- * Fetches all questions, then returns only those whose
- * questionLevel matches the requested level.
- */
 export async function fetchQuestionsByLevel(
   level: string
 ): Promise<Question[]> {
