@@ -27,7 +27,7 @@ export const DATABASE_NAME = "YourDatabaseNameHere";
 ### 2️⃣ API Key
 
 * Go to:
-  `/frontend/src/constants/constants.ts`
+  `/frontend/src/api/config.ts`
 
 * Update the `API_KEY` value with the correct key you will use for API requests.
 
