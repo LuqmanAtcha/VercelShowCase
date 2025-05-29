@@ -11,6 +11,7 @@ export interface Answer {
   _id: string; // Changed from 'id' to '_id'
   questionId: string;
   answer: string;
+  createdAt?: string;
 }
 
 export interface User {
@@ -20,7 +21,7 @@ export interface User {
 }
 
 export interface Survey {
-  _id: string; // Changed from 'id' to '_id'  
+  _id: string; // Changed from 'id' to '_id'
   title: string;
   description: string;
   questions: Question[];
