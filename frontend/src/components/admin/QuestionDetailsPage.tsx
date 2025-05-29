@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { fetchAnswersByQuestionId } from "../api/adminSurveyApi";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -20,9 +21,6 @@ ChartJS.register(
   Legend
 );
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
-const API_KEY = "onn32q43QijfewnS20in2siu!$d24324ckxf";
-
 interface Answer {
   _id: string;
   questionId: string;
@@ -41,14 +39,9 @@ const QuestionDetailPage: React.FC = () => {
     setLoading(true);
     setErr(null);
     try {
-      const res = await fetch(`${API}/api/v1/answers/answers/${id}`, {
-        headers: { "x-api-key": API_KEY },
-      });
-      const data = await res.json();
-      if (Array.isArray(data.data)) {
-        setAnswers(data.data);
-      } else {
-        setAnswers([]);
+      if (id) {
+        const data = await fetchAnswersByQuestionId(id);
+        setAnswers(data);
       }
     } catch (e: any) {
       setErr(e.message);
@@ -58,7 +51,7 @@ const QuestionDetailPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (id) fetchAnswers();
+    fetchAnswers();
   }, [id]);
 
   const answerFrequencies: Record<string, number> = {};
