@@ -1,78 +1,57 @@
-```html
-<h1>GameShow (Sankalp - New UI Branch)</h1>
+# GameShow (Sankalp - New UI Branch)
 
-<p>Welcome to the <strong>SBNA Game Show</strong> project!<br>
-This branch focuses on the updated UI design.</p>
+Welcome to the **SBNA Game Show** project!
+This branch focuses on the updated UI design.
 
-<h3>⚙️ Setup Instructions</h3>
+### ⚙️ Setup Instructions
 
-<p>Before running the project, make sure you <strong>update the following configuration files</strong>:</p>
+Before running the project, make sure you **update the following configuration files**:
 
-<hr>
+---
 
-<h3>1️⃣ Database Name</h3>
+### 1️⃣ Database Name
 
-<ul>
-  <li>Go to:
-    <pre>/backend/src/config/constants.js</pre>
-  </li>
-  <li>Update the database name to match your local or remote MongoDB instance.</li>
-</ul>
+* Go to:
+  `/backend/src/config/constants.js`
 
-<p>Example:</p>
-<pre><code>export const DATABASE_NAME = "YourDatabaseNameHere";
-</code></pre>
+* Update the database name to match your local or remote MongoDB instance.
 
-<hr>
+Example:
 
-<h3>2️⃣ API Key</h3>
+```js
+export const DATABASE_NAME = "YourDatabaseNameHere";
+```
 
-<ul>
-  <li>Go to:
-    <pre>/frontend/src/constants/constants.ts</pre>
-  </li>
-  <li>Update the <code>API_KEY</code> value with the correct key you will use for API requests.</li>
-</ul>
+---
 
-<p>Example:</p>
-<pre><code>export const API_KEY = "your-unique-api-key";
-</code></pre>
+### 2️⃣ API Key
 
-<hr>
+* Go to:
+  `/frontend/src/constants/constants.ts`
 
-<h3>📁 Folder Reference</h3>
+* Update the `API_KEY` value with the correct key you will use for API requests.
 
-<table border="1" cellpadding="5" cellspacing="0">
-  <tr>
-    <th>Folder</th>
-    <th>Purpose</th>
-  </tr>
-  <tr>
-    <td>/backend</td>
-    <td>Express backend, MongoDB models</td>
-  </tr>
-  <tr>
-    <td>/frontend</td>
-    <td>React frontend (New UI branch)</td>
-  </tr>
-  <tr>
-    <td>/frontend/src/constants</td>
-    <td>Holds <code>constants.ts</code> for API keys and settings</td>
-  </tr>
-  <tr>
-    <td>/backend/src/config</td>
-    <td>Holds <code>constants.js</code> for DB configs and backend settings</td>
-  </tr>
-</table>
+Example:
 
-<hr>
+```ts
+export const API_KEY = "your-unique-api-key";
+```
 
-<h3>✅ Reminders</h3>
+---
 
-<ul>
-  <li>Always <strong>check these files</strong> before pushing or running locally.</li>
-  <li>Keep your <strong>API keys private</strong> and don’t commit sensitive keys into the repository.</li>
-  <li>Update <code>.env</code> files if needed, depending on your deployment setup.</li>
-</ul>
+### 📁 Folder Reference
 
-<hr>
+| Folder                    | Purpose                                                  |
+| ------------------------- | -------------------------------------------------------- |
+| `/backend`                | Express backend, MongoDB models                          |
+| `/frontend`               | React frontend (New UI branch)                           |
+| `/frontend/src/constants` | Holds `constants.ts` for API keys and settings           |
+| `/backend/src/config`     | Holds `constants.js` for DB configs and backend settings |
+
+---
+
+### ✅ Reminders
+
+* Always **check these files** before pushing or running locally.
+* Keep your **API keys private** and don’t commit sensitive keys into the repository.
+* Update `.env` files if needed, depending on your deployment setup.
