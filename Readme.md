@@ -11,10 +11,10 @@ Before running the project, make sure you **update the following configuration f
 
 ### 1️⃣ Database Name
 
-* Go to:
+- Go to:
   `/backend/src/constants.js`
 
-* Update the database name to match your local or remote MongoDB instance.
+- Update the database name to match your local or remote MongoDB instance.
 
 Example:
 
@@ -26,10 +26,10 @@ export const DB_NAME = "YourDatabaseNameHere";
 
 ### 2️⃣ API Key
 
-* Go to:
+- Go to:
   `/frontend/src/api/config.ts`
 
-* Update the `API_KEY` value with the correct key you will use for API requests.
+- Update the `API_KEY` value with the correct key you will use for API requests.
 
 Example:
 
@@ -55,9 +55,9 @@ export const defaultHeaders = {
 
 ### ✅ Reminders
 
-* Always **check these files** before pushing or running locally.
-* Keep your **API keys private** and don’t commit sensitive keys into the repository.
-* Update `.env` files if needed, depending on your deployment setup.
+- Always **check these files** before pushing or running locally.
+- Keep your **API keys private** and don’t commit sensitive keys into the repository.
+- Update `.env` files if needed, depending on your deployment setup.
 
 ---
 
@@ -67,6 +67,7 @@ To run the **frontend**:
 
 ```bash
 cd frontend
+npm install
 npm run build
 npm start
 ```
@@ -76,5 +77,6 @@ To run the **backend**:
 ```bash
 cd backend
 cd src
+npm install
 npm run dev
 ```
