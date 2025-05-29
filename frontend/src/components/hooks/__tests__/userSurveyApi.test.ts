@@ -1,124 +1,69 @@
 import { renderHook, act } from "@testing-library/react";
-import { useSurveyApi } from "../useUserSurveyApi";
+import * as api from "../../api/userSurveyApi";
+import { useUserSurveyApi } from "../../hooks/useUserSurveyApi";
 
-// Mock fetch globally
-global.fetch = jest.fn();
-
-const fakeQuestions = [
-  {
-    _id: "1",
-    question: "Test?",
-    questionType: "Input",
-    questionCategory: "Vocabulary",
-    questionLevel: "Beginner",
-  },
+// mock data
+const mockQuestions = [
+  { _id: "1", question: "Q1", level: "Beginner" },
+  { _id: "2", question: "Q2", level: "Beginner" },
 ];
 
-describe("useSurveyApi", () => {
+// mock api methods
+jest.mock("../../api/userSurveyApi");
+
+describe("useUserSurveyApi", () => {
   beforeEach(() => {
-    (fetch as jest.Mock).mockReset();
+    jest.clearAllMocks();
   });
 
-  test("fetchQuestions - success", async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ data: fakeQuestions }),
-    });
-
-    const { result } = renderHook(() => useSurveyApi());
-
-    await act(async () => {
-      await result.current.fetchQuestions();
-    });
-
-    expect(result.current.questionsByLevel.Beginner).toHaveLength(1);
-    expect(result.current.error).toBe("");
-  });
-
-  test("fetchQuestions - failure", async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ error: "Fetch failed" }),
-    });
-
-    const { result } = renderHook(() => useSurveyApi());
-
-    await act(async () => {
-      await result.current.fetchQuestions();
-    });
-
-    expect(result.current.error).toBe("Fetch failed");
-  });
-
-  test("updateTabQuestions updates local state", () => {
-    const { result } = renderHook(() => useSurveyApi());
-
-    const newQuestion = {
-      id: "123",
-      question: "New?",
-      questionType: "Input",
-      questionCategory: "Grammar",
-      questionLevel: "Beginner",
-    };
-
-    act(() => {
-      result.current.updateTabQuestions("Beginner", [newQuestion]);
-    });
-
-    expect(result.current.questionsByLevel.Beginner[0]).toEqual(newQuestion);
-  });
-  test("deleteAllQuestions calls delete API", async () => {
-    (fetch as jest.Mock).mockResolvedValue({ ok: true });
-
-    const { result } = renderHook(() => useSurveyApi());
-
-    const questions = [{ id: "1" }, { id: "2" }] as any;
-
-    await act(async () => {
-      await result.current.deleteAllQuestions(questions);
-    });
-
-    const deleteCalls = (fetch as jest.Mock).mock.calls.filter(
-      ([url, options]) => options.method === "DELETE"
+  test("fetches questions successfully on mount", async () => {
+    (api.fetchQuestionsByLevel as jest.Mock).mockResolvedValueOnce(
+      mockQuestions
     );
 
-    expect(deleteCalls).toHaveLength(2);
-    deleteCalls.forEach(([url, options]) => {
-      expect(url).toContain("/api/v1/questions");
-      expect(options.method).toBe("DELETE");
-    });
+    const { result } = renderHook(() => useUserSurveyApi("Beginner"));
+
+    // wait for useEffect to finish
+    await act(async () => {});
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBe("");
+    expect(result.current.questions).toEqual(mockQuestions);
+    expect(api.fetchQuestionsByLevel).toHaveBeenCalledWith("Beginner");
   });
 
-  test("publishSurvey deletes old + posts new", async () => {
-    (fetch as jest.Mock)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: [{ _id: "old1" }, { _id: "old2" }] }),
-      })
-      .mockResolvedValue({ ok: true }) // deletes
-      .mockResolvedValue({ ok: true }) // delete answers
-      .mockResolvedValue({ ok: true }); // post new
+  test("handles fetch error", async () => {
+    (api.fetchQuestionsByLevel as jest.Mock).mockRejectedValueOnce(
+      new Error("Fetch failed")
+    );
 
-    const { result } = renderHook(() => useSurveyApi());
+    const { result } = renderHook(() => useUserSurveyApi("Beginner"));
 
-    const newQuestions = [
-      {
-        id: "1",
-        question: "New Q1",
-        questionType: "Input",
-        questionCategory: "Vocabulary",
-        questionLevel: "Beginner",
-      },
+    // wait for useEffect to finish
+    await act(async () => {});
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBe("Fetch failed");
+    expect(result.current.questions).toEqual([]);
+  });
+
+  test("submits all answers", async () => {
+    const submitAnswerMock = api.submitAnswer as jest.Mock;
+    submitAnswerMock.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useUserSurveyApi("Beginner"));
+
+    const mockAnswers = [
+      { questionID: "1", answerText: "Answer 1" },
+      { questionID: "2", answerText: "Answer 2" },
     ];
 
     await act(async () => {
-      await result.current.publishSurvey(newQuestions);
+      await result.current.submitAllAnswers(mockAnswers);
     });
 
-    expect(fetch).toHaveBeenCalled();
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/v1/questions"),
-      expect.anything()
-    );
+    expect(submitAnswerMock).toHaveBeenCalledTimes(2);
+    expect(submitAnswerMock).toHaveBeenCalledWith("1", "Answer 1");
+    expect(submitAnswerMock).toHaveBeenCalledWith("2", "Answer 2");
   });
 });
