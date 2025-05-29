@@ -17,7 +17,7 @@ export interface Answer {
 export interface User {
   name: string;
   isAnonymous: boolean;
-  role: "participant" | "admin";
+  role: "participant" | "admin" | "super_admin";
 }
 
 export interface Survey {
