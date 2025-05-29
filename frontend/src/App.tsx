@@ -9,7 +9,7 @@ import {
 
 import LoginPage from "./components/auth/LoginPage";
 import NotFound from "./components/common/NotFound";
-import UserSurvey from "./components/UserSurvey";
+import UserSurvey from "./components/user/UserSurvey";
 import AnalyticsPage from "./components/admin/AnalyticsPage";
 import SurveyPage from "./components/admin/SurveyPage"; // <--- Add this import
 

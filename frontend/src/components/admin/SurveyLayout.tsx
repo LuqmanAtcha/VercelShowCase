@@ -6,24 +6,26 @@ import { Header } from "./Header";
 import ErrorAlert from "../common/ErrorAlert";
 import { Question } from "../../type";
 
+const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
+type Level = (typeof LEVELS)[number];
+
 interface SurveyLayoutProps {
   questions: Question[];
+  questionsByLevel: Record<Level, Question[]>;
   currentIndex: number;
+  currentLevel: Level;
   completedCount: number;
   showPreview: boolean;
   isSubmitting: boolean;
   error: string;
-  currentLevel: string;
 
-  // Group: Navigation handlers
-  onSelectQuestion: (index: number) => void;
-  onAddQuestion: () => void;
+  onSelectQuestion: (level: Level, index: number) => void;
+  onAddQuestion: (level: Level) => void;
   onPrev: () => void;
   onNext: () => void;
   onDeleteCurrent: () => void;
-  onDeleteAllQuestions: () => void;
+  onDeleteAllQuestions: (level: Level) => void;
 
-  // Group: Form handlers
   onUpdateQuestion: (field: keyof Question, value: string) => void;
   onPublish: () => void;
   onPreview: () => void;
@@ -37,12 +39,13 @@ interface SurveyLayoutProps {
 
 function SurveyLayout({
   questions,
+  questionsByLevel,
   currentIndex,
+  currentLevel,
   completedCount,
   showPreview,
   isSubmitting,
   error,
-  currentLevel,
   onSelectQuestion,
   onAddQuestion,
   onPrev,
@@ -69,23 +72,27 @@ function SurveyLayout({
         onLogout={onLogout}
       />
       {error && <ErrorAlert message={error} onDismiss={onErrorDismiss} />}
-      <div className="max-w-4xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <MemoizedSidebar
-          questions={questions}
-          currentIndex={currentIndex}
-          onSelect={onSelectQuestion}
-          onAdd={onAddQuestion}
-          onDeleteAll={onDeleteAllQuestions}
-          completedCount={completedCount}
-          levelLabel={currentLevel}
-        />
-        <div className="lg:col-span-3">
+      <div className="max-w-7xl mx-auto p-6 flex flex-col lg:flex-row gap-6">
+        <div className="lg:w-96 flex-shrink-0">
+          <MemoizedSidebar
+            questionsByLevel={questionsByLevel}
+            currentLevel={currentLevel}
+            currentIndex={currentIndex}
+            onSelect={onSelectQuestion}
+            onAdd={onAddQuestion}
+            onDeleteAll={onDeleteAllQuestions}
+            completedCount={completedCount}
+          />
+        </div>
+
+        <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold">{formTitle}</h1>
           <p className="text-gray-600 mb-4">{formDescription}</p>
 
           {questions.length === 0 ? (
             <div className="text-center text-gray-500">
-              No questions added yet. Click <b>“Add Question”</b> to get started.
+              No questions added yet. Click <b>"Add Question"</b> to get
+              started.
             </div>
           ) : (
             questions[currentIndex] && (
@@ -98,7 +105,8 @@ function SurveyLayout({
                 onNext={onNext}
                 onDelete={onDeleteCurrent}
                 onUpdate={onUpdateQuestion}
-                onAddNext={onAddQuestion}
+                onAddNext={() => onAddQuestion(currentLevel)}
+                currentTabLevel={currentLevel}
               />
             )
           )}
@@ -119,7 +127,6 @@ function SurveyLayout({
   );
 }
 
-// React.memo for performance on large lists
 const MemoizedSidebar = memo(Sidebar);
 const MemoizedQuestionCard = memo(QuestionCard);
 

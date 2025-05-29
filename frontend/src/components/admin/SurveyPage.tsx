@@ -31,55 +31,81 @@ function SurveyPage() {
     fetchQuestions();
   }, [fetchQuestions, navigate]);
 
-  const questions = questionsByLevel[currentTab];
+  const onSelectQuestion = (level: Level, index: number) => {
+    setCurrentTab(level);
+    setCurrentIndex(index);
+  };
 
-  const addQuestion = () => {
-    const last = questions[questions.length - 1];
+  const onAddQuestion = (level: Level) => {
+    const last = questionsByLevel[level][questionsByLevel[level].length - 1];
     const next: Question = {
       id: "",
       question: "",
       questionType: "Input",
       questionCategory: last?.questionCategory || "",
-      questionLevel: currentTab,
+      questionLevel: level,
     };
-    updateTabQuestions(currentTab, [...questions, next]);
-    setCurrentIndex(questions.length);
+    updateTabQuestions(level, [...questionsByLevel[level], next]);
+    setCurrentTab(level);
+    setCurrentIndex(questionsByLevel[level].length);
+  };
+
+  const onDeleteAllQuestions = (level: Level) => {
+    deleteAllQuestions(questionsByLevel[level]);
+    setCurrentIndex(0);
   };
 
   const deleteQuestion = async (i: number) => {
-    const questionToDelete = questions[i];
-    if (questions.length === 1) return;
+    const questionToDelete = questionsByLevel[currentTab][i];
+    if (questionsByLevel[currentTab].length === 1) return;
 
     if (questionToDelete.id) {
       await deleteAllQuestions([questionToDelete]);
     }
-    const updated = questions.filter((_, idx) => idx !== i);
+    const updated = questionsByLevel[currentTab].filter((_, idx) => idx !== i);
     updateTabQuestions(currentTab, updated);
     setCurrentIndex(Math.min(i, updated.length - 1));
   };
 
   const updateQuestion = (field: keyof Question, val: string) => {
-    const copy = [...questions];
-    copy[currentIndex] = { ...copy[currentIndex], [field]: val };
-    updateTabQuestions(currentTab, copy);
-
     if (field === "questionLevel" && LEVELS.includes(val as Level)) {
-      setCurrentTab(val as Level);
-      setCurrentIndex(0);
+      const targetLevel = val as Level;
+      const updatedQuestion = {
+        ...questionsByLevel[currentTab][currentIndex],
+        questionLevel: targetLevel,
+      };
+
+      // Remove from current tab
+      const updatedCurrentTabList = questionsByLevel[currentTab].filter(
+        (_, idx) => idx !== currentIndex
+      );
+
+      // Add to target tab
+      const targetTabList = [...questionsByLevel[targetLevel], updatedQuestion];
+
+      // Update both
+      updateTabQuestions(currentTab, updatedCurrentTabList);
+      updateTabQuestions(targetLevel, targetTabList);
+
+      // Switch to target tab and set index to last
+      setCurrentTab(targetLevel);
+      setCurrentIndex(targetTabList.length - 1);
+    } else {
+      const copy = [...questionsByLevel[currentTab]];
+      copy[currentIndex] = { ...copy[currentIndex], [field]: val };
+      updateTabQuestions(currentTab, copy);
     }
     setError("");
   };
 
-  const completedCount = questions.filter(
-    (q) => q.question?.trim() && q.questionCategory && q.questionLevel
-  ).length;
+  const completedCount = Object.values(questionsByLevel)
+    .flat()
+    .filter(
+      (q) => q.question?.trim() && q.questionCategory && q.questionLevel
+    ).length;
 
   const handleLogout = () => {
     navigate("/sbna-gameshow-form");
-  };
-
-  const handleAnalytics = () => {
-    navigate("/analytics");
   };
 
   const handlePublish = async () => {
@@ -110,21 +136,24 @@ function SurveyPage() {
 
   return (
     <SurveyLayout
-      questions={questions}
+      questions={questionsByLevel[currentTab]}
+      questionsByLevel={questionsByLevel}
       currentIndex={currentIndex}
+      currentLevel={currentTab}
       completedCount={completedCount}
-      showPreview={false} // hook this up if needed
+      showPreview={false}
       isSubmitting={isLoading}
       error={error}
-      currentLevel={currentTab}
-      onSelectQuestion={setCurrentIndex}
-      onAddQuestion={addQuestion}
+      onSelectQuestion={onSelectQuestion}
+      onAddQuestion={onAddQuestion}
       onPrev={() => setCurrentIndex((prev) => Math.max(prev - 1, 0))}
       onNext={() =>
-        setCurrentIndex((prev) => Math.min(prev + 1, questions.length - 1))
+        setCurrentIndex((prev) =>
+          Math.min(prev + 1, questionsByLevel[currentTab].length - 1)
+        )
       }
       onDeleteCurrent={() => deleteQuestion(currentIndex)}
-      onDeleteAllQuestions={() => deleteAllQuestions(questions)}
+      onDeleteAllQuestions={onDeleteAllQuestions}
       onUpdateQuestion={updateQuestion}
       onPublish={handlePublish}
       onPreview={() => {}}
@@ -132,7 +161,7 @@ function SurveyPage() {
       onLogout={handleLogout}
       onErrorDismiss={() => setError("")}
       formTitle="Sanskrit Language Survey"
-      formDescription={`Please add/edit questions for the ${currentTab} level here.`}
+      formDescription={`Please add/edit questions across all levels.`}
     />
   );
 }
