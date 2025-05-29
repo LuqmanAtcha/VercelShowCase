@@ -1,6 +1,4 @@
-// src/api/userSurveyApi.ts
-
-import { API_BASE } from "./config";
+import { API_BASE, defaultHeaders } from "./config";
 import { Question } from "../../types";
 
 // exactly what your backend sends
@@ -20,7 +18,9 @@ interface RawQuestion {
 }
 
 export async function fetchAllQuestions(): Promise<Question[]> {
-  const res = await fetch(`${API_BASE}/api/v1/questions?page=1`);
+  const res = await fetch(`${API_BASE}/api/v1/questions?page=1`, {
+    headers: defaultHeaders,
+  });
   if (!res.ok) {
     throw new Error(`Network error: ${res.status}`);
   }
@@ -59,7 +59,7 @@ export async function submitAnswer(
 ): Promise<void> {
   const res = await fetch(`${API_BASE}/api/v1/answers/answer`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: defaultHeaders,
     body: JSON.stringify({ questionID: qId, answerText }),
   });
   if (!res.ok) {
