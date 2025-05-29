@@ -19,7 +19,7 @@ Before running the project, make sure you **update the following configuration f
 Example:
 
 ```js
-export const DATABASE_NAME = "YourDatabaseNameHere";
+export const DB_NAME = "YourDatabaseNameHere";
 ```
 
 ---
@@ -34,7 +34,11 @@ export const DATABASE_NAME = "YourDatabaseNameHere";
 Example:
 
 ```ts
-export const API_KEY = "your-unique-api-key";
+export const defaultHeaders = {
+  "Content-Type": "application/json",
+  "x-api-key": "your-api-key",
+};
+
 ```
 
 ---
@@ -45,8 +49,8 @@ export const API_KEY = "your-unique-api-key";
 | ------------------------- | -------------------------------------------------------- |
 | `/backend`                | Express backend, MongoDB models                          |
 | `/frontend`               | React frontend (New UI branch)                           |
-| `/frontend/src/constants` | Holds `constants.ts` for API keys and settings           |
-| `/backend/src/config`     | Holds `constants.js` for DB configs and backend settings |
+| `/frontend/src/api/`      | Holds `config.ts` for API keys and settings              |
+| `/backend/src/`           | Holds `constants.js` for DB configs and backend settings |
 
 ---
 
