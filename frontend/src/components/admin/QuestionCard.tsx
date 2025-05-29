@@ -1,12 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import { X, Plus } from "lucide-react";
-
-// Define the Question type
-interface Question {
-  question?: string;
-  questionCategory?: string;
-  questionLevel?: string;
-}
+import { Question } from "../../types";
 
 // Centralize the allowed options
 const categories = ["Vocabulary", "Grammar", "Culture"] as const;
