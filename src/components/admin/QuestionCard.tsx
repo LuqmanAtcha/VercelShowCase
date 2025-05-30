@@ -36,7 +36,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
       // Ensure all fields are cleared together
       onUpdate("question", "");
       onUpdate("questionCategory", "");
-      onUpdate("questionLevel", currentTabLevel);
     };
 
     const nearLimit = (question.question?.length || 0) > 450;
