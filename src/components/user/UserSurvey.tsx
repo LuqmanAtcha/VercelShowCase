@@ -40,10 +40,14 @@ const UserSurvey: React.FC = () => {
 
   // Move to next question or show preview dialog
   const handleSaveNext = () => {
-    if (!answers[index]?.trim()) {
-      setError("Please answer or Skip.");
+    const currentAnswer = answers[index]?.trim();
+    
+    // Check if the question is neither answered nor skipped
+    if (!currentAnswer && answers[index] !== "skip") {
+      setError("Please answer the question or click Skip.");
       return;
     }
+    
     setError("");
     if (index < questions.length - 1) {
       setIndex((i) => i + 1);
@@ -86,6 +90,7 @@ const UserSurvey: React.FC = () => {
     try {
       const payload = questions.map((q, i) => ({
         questionID: q._id,
+        // For skipped questions, send empty string. For answered questions, send the answer or empty string if blank
         answerText: answers[i] === "skip" ? "" : (answers[i] || ""),
       }));
       await submitAllAnswers(payload);
