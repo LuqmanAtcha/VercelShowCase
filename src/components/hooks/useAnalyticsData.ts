@@ -45,32 +45,53 @@ export const useAnalyticsData = (
     const answerCounts: Record<string, number> = {};
     const skipCounts: Record<string, number> = {};
 
-    // Process questions
+    // Initialize counts for all questions
     questions.forEach((q) => {
       if (!categoryCounts[q.questionCategory]) {
         categoryCounts[q.questionCategory] = 0;
       }
       categoryCounts[q.questionCategory]++;
       levelCounts[q.questionLevel] = (levelCounts[q.questionLevel] || 0) + 1;
+      
+      // Initialize counts for each question
       answerCounts[q._id] = 0;
       skipCounts[q._id] = 0;
+
+      // Process answers from the question's embedded answers array
+      if (q.answers && Array.isArray(q.answers)) {
+        q.answers.forEach((answerData) => {
+          const isSkip = !answerData.answer || 
+                        answerData.answer.trim() === '' || 
+                        answerData.answer.toLowerCase() === "skip" || 
+                        answerData.answer.toLowerCase() === "skipped";
+          
+          if (isSkip) {
+            skipCounts[q._id] += answerData.responseCount;
+          } else {
+            answerCounts[q._id] += answerData.responseCount;
+          }
+        });
+      }
     });
 
-    // Process answers
-    answers.forEach((a) => {
-      const isSkip = !a.answer || 
-                    a.answer.trim() === '' || 
-                    a.answer.toLowerCase() === "skip" || 
-                    a.answer.toLowerCase() === "skipped";
-      
-      if (a.questionId && answerCounts[a.questionId] !== undefined) {
+    // Also process the separate answers array if it exists and has data
+    // This is a fallback in case the data structure is different
+    if (answers && answers.length > 0) {
+      answers.forEach((a) => {
+        if (!a.questionId || answerCounts[a.questionId] === undefined) return;
+        
+        const isSkip = !a.answer || 
+                      a.answer.trim() === '' || 
+                      a.answer.toLowerCase() === "skip" || 
+                      a.answer.toLowerCase() === "skipped";
+        
         if (isSkip) {
           skipCounts[a.questionId]++;
         } else {
           answerCounts[a.questionId]++;
         }
-      }
-    });
+      });
+    }
 
     // Calculate totals
     const totalAnswered = Object.values(answerCounts).reduce((sum, cnt) => sum + cnt, 0);

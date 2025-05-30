@@ -18,6 +18,7 @@ import { LevelChart } from "../analytics/LevelChart";
 import { ChartContainer } from "../analytics/ChartContainer";
 import { Leaderboard } from "../analytics/Leaderboard";
 import { ResponsesTable } from "../analytics/ResponsesTable";
+import { AnalyticsDebug } from "../analytics/AnalyticsDebug";
 import { useAnalyticsData } from "../hooks/useAnalyticsData";
 
 ChartJS.register(
@@ -116,6 +117,8 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
   return (
     <div className="p-6 space-y-6">
       <AnalyticsHeader onRefresh={fetchData} />
+
+      <AnalyticsDebug questions={questions} answers={answers} />
 
       <StatsOverview
         totalResponses={analyticsData.totalResponses}

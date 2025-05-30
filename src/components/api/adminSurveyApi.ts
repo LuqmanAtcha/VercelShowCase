@@ -87,17 +87,36 @@ export async function fetchAllQuestionsAndAnswers(): Promise<{
   const response = await res.json();
   const questions: Question[] = response.data || [];
 
-  // Extract answers from the questions
+  // Transform the data to ensure skip counting works properly
+  const transformedQuestions = questions.map(q => {
+    if (q.answers && Array.isArray(q.answers)) {
+      // Ensure each answer entry has proper structure for skip detection
+      const processedAnswers = q.answers.map(ans => ({
+        ...ans,
+        // Normalize empty answers to be consistent
+        answer: ans.answer || "", 
+        responseCount: ans.responseCount || 0
+      }));
+      
+      return {
+        ...q,
+        answers: processedAnswers
+      };
+    }
+    return q;
+  });
+
+  // Create a flat answers array for backward compatibility
   let allAnswers: Answer[] = [];
-  questions.forEach((q: any) => {
+  transformedQuestions.forEach((q: any) => {
     if (q.answers && Array.isArray(q.answers)) {
       q.answers.forEach((ans: any) => {
-        // Create Answer objects from the response count data
+        // Create individual answer records based on responseCount
         for (let i = 0; i < ans.responseCount; i++) {
           allAnswers.push({
-            _id: ans._id || `${q._id}-${i}`,
+            _id: ans._id || `${q._id}-${ans.answer}-${i}`,
             questionId: q._id,
-            answer: ans.answer,
+            answer: ans.answer || "", // Ensure empty answers are properly handled
             createdAt: q.createdAt,
           });
         }
@@ -105,7 +124,7 @@ export async function fetchAllQuestionsAndAnswers(): Promise<{
     }
   });
 
-  return { questions, answers: allAnswers };
+  return { questions: transformedQuestions, answers: allAnswers };
 }
 
 export async function fetchAnswersByQuestionId(
@@ -134,7 +153,7 @@ export async function fetchAnswersByQuestionId(
       answers.push({
         _id: `${ans._id || questionId}-${i}`,
         questionId: questionId,
-        answer: ans.answer,
+        answer: ans.answer || "", // Handle empty answers properly
         createdAt: question.createdAt,
       });
     }
