@@ -15,7 +15,7 @@ import SurveyPage from "./components/admin/SurveyPage"; // <--- Add this import
 import QuestionDetailPage from "./components/admin/QuestionDetailsPage";
 import { fetchAllQuestionsAndAnswers } from "./components/api/adminSurveyApi";
 
-const ADMIN_PASSWORD = "admin123";
+const ADMIN_PASSWORD = "AdminForm123";
 
 const App: React.FC = () => (
   <Router>
