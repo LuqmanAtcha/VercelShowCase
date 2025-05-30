@@ -55,7 +55,7 @@ export const AnalyticsDebug: React.FC<AnalyticsDebugProps> = ({ questions, answe
         </div>
       </div>
       
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
         <div>
           <span className="font-medium">Total Questions:</span>
           <span className="ml-2">{questions.length}</span>
@@ -70,16 +70,23 @@ export const AnalyticsDebug: React.FC<AnalyticsDebugProps> = ({ questions, answe
             {questions.filter(q => q.answers && q.answers.length > 0).length}
           </span>
         </div>
+        <div>
+          <span className="font-medium">Questions with Skip Count:</span>
+          <span className="ml-2">
+            {questions.filter(q => q.timesSkipped !== undefined && q.timesSkipped > 0).length}
+          </span>
+        </div>
       </div>
       
-      {/* Show answer structure for each question */}
+      {/* Show answer structure and skip counts for each question */}
       <div className="mt-4">
-        <h4 className="font-semibold mb-2">Question Answer Breakdown:</h4>
+        <h4 className="font-semibold mb-2">Question Answer & Skip Breakdown:</h4>
         <div className="max-h-40 overflow-y-auto">
           {questions.slice(0, 5).map((q, idx) => (
             <div key={q._id} className="mb-2 p-2 bg-white rounded border text-xs">
               <div><strong>Q{idx + 1}:</strong> {q.question.substring(0, 50)}...</div>
               <div><strong>Embedded Answers:</strong> {q.answers?.length || 0}</div>
+              <div><strong>Times Skipped:</strong> {q.timesSkipped || 0}</div>
               {q.answers && q.answers.length > 0 && (
                 <div className="ml-4 mt-1">
                   {q.answers.map((ans, ansIdx) => (

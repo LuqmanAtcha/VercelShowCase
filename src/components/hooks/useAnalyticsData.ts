@@ -57,41 +57,21 @@ export const useAnalyticsData = (
       answerCounts[q._id] = 0;
       skipCounts[q._id] = 0;
 
-      // Process answers from the question's embedded answers array
+      // Use the timesSkipped field directly from the question
+      if (q.timesSkipped !== undefined) {
+        skipCounts[q._id] = q.timesSkipped;
+      }
+
+      // Count actual answers from the question's embedded answers array
       if (q.answers && Array.isArray(q.answers)) {
         q.answers.forEach((answerData) => {
-          const isSkip = !answerData.answer || 
-                        answerData.answer.trim() === '' || 
-                        answerData.answer.toLowerCase() === "skip" || 
-                        answerData.answer.toLowerCase() === "skipped";
-          
-          if (isSkip) {
-            skipCounts[q._id] += answerData.responseCount;
-          } else {
+          // Only count non-empty answers as actual responses
+          if (answerData.answer && answerData.answer.trim() !== '') {
             answerCounts[q._id] += answerData.responseCount;
           }
         });
       }
     });
-
-    // Also process the separate answers array if it exists and has data
-    // This is a fallback in case the data structure is different
-    if (answers && answers.length > 0) {
-      answers.forEach((a) => {
-        if (!a.questionId || answerCounts[a.questionId] === undefined) return;
-        
-        const isSkip = !a.answer || 
-                      a.answer.trim() === '' || 
-                      a.answer.toLowerCase() === "skip" || 
-                      a.answer.toLowerCase() === "skipped";
-        
-        if (isSkip) {
-          skipCounts[a.questionId]++;
-        } else {
-          answerCounts[a.questionId]++;
-        }
-      });
-    }
 
     // Calculate totals
     const totalAnswered = Object.values(answerCounts).reduce((sum, cnt) => sum + cnt, 0);
@@ -99,7 +79,7 @@ export const useAnalyticsData = (
     const totalResponses = totalAnswered + totalSkipped;
     const overallSkipRate = totalResponses > 0 ? ((totalSkipped / totalResponses) * 100).toFixed(1) : "0.0";
 
-    // Create leaderboard
+    // Create leaderboard based on actual answers (not including skips)
     const leaderboard = questions
       .map((q) => ({
         question: q.question,
