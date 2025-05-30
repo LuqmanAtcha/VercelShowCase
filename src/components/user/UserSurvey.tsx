@@ -22,6 +22,11 @@ const UserSurvey: React.FC = () => {
   const [index, setIndex] = useState(0);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
+  
+  // Custom popup state
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
+  const [isSuccessPopup, setIsSuccessPopup] = useState(true);
 
   // Initialize answers array when questions arrive
   useEffect(() => {
@@ -81,13 +86,25 @@ const UserSurvey: React.FC = () => {
     try {
       const payload = questions.map((q, i) => ({
         questionID: q._id,
-      answerText: answers[i] === "skip" ? "" : (answers[i] || ""),
+        answerText: answers[i] === "skip" ? "" : (answers[i] || ""),
       }));
       await submitAllAnswers(payload);
-      alert("Survey submitted successfully! Thank you for your participation.");
-      navigate("/login");
+      
+      setPopupMessage("Survey submitted successfully! Thank you for your participation.");
+      setIsSuccessPopup(true);
+      setShowPopup(true);
     } catch (e: any) {
-      alert(`Failed to submit survey: ${e.message}`);
+      setPopupMessage(`Failed to submit survey: ${e.message}`);
+      setIsSuccessPopup(false);
+      setShowPopup(true);
+    }
+  };
+
+  // Handle popup close
+  const handleClosePopup = () => {
+    setShowPopup(false);
+    if (isSuccessPopup) {
+      navigate("/login");
     }
   };
 
@@ -198,6 +215,40 @@ const UserSurvey: React.FC = () => {
           onLogout={() => setShowLogoutPrompt(true)}
         />
       </div>
+
+      {showPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center">
+              {isSuccessPopup ? (
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            <h2 className={`text-xl font-bold mb-2 ${isSuccessPopup ? "text-green-600" : "text-red-600"}`}>
+              {isSuccessPopup ? "Success!" : "Submission Failed"}
+            </h2>
+            <p className="mb-6 text-gray-700">{popupMessage}</p>
+            <button
+              onClick={handleClosePopup}
+              className={`px-6 py-2 rounded-lg text-white ${
+                isSuccessPopup ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+              } transition-colors`}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };
