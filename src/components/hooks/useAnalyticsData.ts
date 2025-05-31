@@ -1,6 +1,5 @@
-// src/components/hooks/useAnalyticsData.ts
 import { useMemo } from "react";
-import { Question, Answer } from "../../types";
+import { Question } from "../../types";
 
 interface AnalyticsData {
   categoryCounts: Record<string, number>;
@@ -30,12 +29,10 @@ interface AnalyticsData {
   };
 }
 
-export const useAnalyticsData = (
-  questions: Question[], 
-  answers: Answer[]
-): AnalyticsData => {
+export const useAnalyticsData = (questions: Question[]): AnalyticsData => {
   return useMemo(() => {
     const predefinedCategories = ["Grammar", "Vocabulary", "Culture"];
+
     const categoryCounts: Record<string, number> = {
       Grammar: 0,
       Vocabulary: 0,
@@ -52,21 +49,16 @@ export const useAnalyticsData = (
       }
       categoryCounts[q.questionCategory]++;
       levelCounts[q.questionLevel] = (levelCounts[q.questionLevel] || 0) + 1;
-      
-      // Initialize counts for each question
-      answerCounts[q._id] = 0;
-      skipCounts[q._id] = 0;
 
-      // Use the timesSkipped field directly from the question
-      if (q.timesSkipped !== undefined) {
-        skipCounts[q._id] = q.timesSkipped;
-      }
+      // Initialize per‐question counts
+      answerCounts[q._id] = 0;
+      skipCounts[q._id] = q.timesSkipped ?? 0;
 
       // Count actual answers from the question's embedded answers array
       if (q.answers && Array.isArray(q.answers)) {
         q.answers.forEach((answerData) => {
-          // Only count non-empty answers as actual responses
-          if (answerData.answer && answerData.answer.trim() !== '') {
+          // Only count non‐empty answers as actual responses
+          if (answerData.answer && answerData.answer.trim() !== "") {
             answerCounts[q._id] += answerData.responseCount;
           }
         });
@@ -74,10 +66,19 @@ export const useAnalyticsData = (
     });
 
     // Calculate totals
-    const totalAnswered = Object.values(answerCounts).reduce((sum, cnt) => sum + cnt, 0);
-    const totalSkipped = Object.values(skipCounts).reduce((sum, cnt) => sum + cnt, 0);
+    const totalAnswered = Object.values(answerCounts).reduce(
+      (sum, cnt) => sum + cnt,
+      0
+    );
+    const totalSkipped = Object.values(skipCounts).reduce(
+      (sum, cnt) => sum + cnt,
+      0
+    );
     const totalResponses = totalAnswered + totalSkipped;
-    const overallSkipRate = totalResponses > 0 ? ((totalSkipped / totalResponses) * 100).toFixed(1) : "0.0";
+    const overallSkipRate =
+      totalResponses > 0
+        ? ((totalSkipped / totalResponses) * 100).toFixed(1)
+        : "0.0";
 
     // Create leaderboard based on actual answers (not including skips)
     const leaderboard = questions
@@ -124,5 +125,5 @@ export const useAnalyticsData = (
       categoryChartData,
       levelChartData,
     };
-  }, [questions, answers]);
+  }, [questions]);
 };
