@@ -85,49 +85,7 @@ function SurveyLayout({
       />
       {error && <ErrorAlert message={error} onDismiss={onErrorDismiss} />}
       
-      {/* Mode Toggle */}
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="bg-white rounded-xl shadow-sm border border-purple-200 p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Current Mode: {mode === "create" ? "Create New Survey" : "Edit Existing Survey"}
-              </h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={onSwitchToCreate}
-                  disabled={isSubmitting}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    mode === "create"
-                      ? "bg-green-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  } disabled:opacity-50`}
-                >
-                  Create Mode
-                </button>
-                <button
-                  onClick={onSwitchToEdit}
-                  disabled={isSubmitting}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    mode === "edit"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  } disabled:opacity-50`}
-                >
-                  Edit Mode
-                </button>
-              </div>
-            </div>
-            <p className="text-sm text-gray-600">
-              {mode === "create" 
-                ? "Create new questions (POST)" 
-                : "Update existing questions (PUT)"
-              }
-            </p>
-          </div>
-        </div>
-      </div>
-
+      
       <div className="max-w-7xl mx-auto px-6 flex flex-col lg:flex-row gap-6">
         <div className="lg:w-96 flex-shrink-0">
           <MemoizedSidebar
