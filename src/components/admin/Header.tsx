@@ -54,11 +54,12 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-white font-bold text-sm">SF</span>
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Survey Form</h1>
-                <p className="text-sm text-gray-500">Sanskrit Survey Builder</p>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Survey Form
+                </h1>
               </div>
             </div>
-            
+
             {/* Mode Selection Toggle */}
             <div className="flex items-center bg-gray-100 rounded-lg p-1">
               <button
@@ -88,11 +89,8 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center justify-between">
             {/* Progress Indicator */}
             <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600">
-                <span className="font-medium text-purple-700">{completedCount}</span> completed questions
-              </div>
-              <div className="text-xs text-gray-500">
-                Mode: <span className="font-medium capitalize">{mode}</span>
+              <div className="text-m text-gray-700">
+                <span className="font-medium capitalize">{mode}</span> Mode
               </div>
             </div>
 
@@ -110,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 👁️ Preview
               </button>
-              
+
               {mode === "create" ? (
                 <button
                   onClick={onCreateNew}
@@ -128,7 +126,7 @@ export const Header: React.FC<HeaderProps> = ({
                   ✏️ {isSubmitting ? "Updating..." : "Update Existing"}
                 </button>
               )}
-              
+
               <button
                 onClick={handleLogoutClick}
                 className="px-4 py-2 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
