@@ -38,16 +38,25 @@ function SidebarItem({
 }: SidebarItemProps) {
   return (
     <div
-      className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200 ${
+      className={`group flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all duration-200 ${
         isCurrent
           ? "bg-purple-100 border-l-4 border-purple-600 shadow-sm"
           : "hover:bg-gray-50 hover:shadow-sm border-l-4 border-transparent"
       }`}
       onClick={onSelect}
     >
-      <span className="text-xs font-medium truncate flex-1 pr-2">
-        Q{idx + 1}. {question.question || "Untitled Question"}
-      </span>
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div
+          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+            isCurrent ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-600"
+          }`}
+        >
+          {idx + 1}
+        </div>
+        <span className="text-xs font-medium truncate">
+          {question.question || "Untitled Question"}
+        </span>
+      </div>
       <div
         className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors ${
           isCompleted ? "bg-green-500" : "bg-gray-300"
@@ -73,52 +82,40 @@ export function Sidebar({
 
   return (
     <aside className="w-full max-w-6xl bg-white rounded-2xl shadow-lg border border-gray-100 p-4 space-y-4 text-gray-800 h-full overflow-hidden flex flex-col">
+      {/* Header */}
       <div className="flex-shrink-0">
-        <h3 className="text-xl font-bold text-gray-900 mb-2">Question Bank</h3>
+        <h3 className="text-lg font-bold text-gray-900 mb-3">Question Bank</h3>
 
-        {/* Progress Section */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-3 mb-3">
+        {/* Compact Progress Section */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-3 mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              Overall Progress
-            </span>
+            <span className="text-sm font-medium text-gray-700">Progress</span>
             <span className="text-sm font-bold text-purple-700">
               {completedCount}/{totalQuestions}
             </span>
           </div>
-          <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+          <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-500 ease-out rounded-full"
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <div className="text-xs text-gray-600 mt-1">
-            {Math.round(progressPct)}% Complete
-          </div>
         </div>
       </div>
 
-      {/* Scrollable Content */}
+      {/* Level Sections */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-3 overflow-hidden">
         {LEVELS.map((level) => {
           const levelQuestions = questionsByLevel[level] || [];
-          const levelCompleted = levelQuestions.filter(
-            (q) =>
-              !!(q.question?.trim() && q.questionCategory && q.questionLevel)
-          ).length;
-
+          // Removed numeric display beside Level title
           return (
             <div
               key={level}
               className="bg-gray-50 rounded-xl border border-gray-100 flex flex-col min-h-0"
             >
-              <div className="flex items-center justify-between p-3 flex-shrink-0">
-                <div className="flex items-center space-x-2">
-                  <h4 className="font-semibold text-gray-900 text-sm">{level}</h4>
-                  <span className="text-xs bg-white px-2 py-1 rounded-full text-gray-600 border">
-                    {levelCompleted}/{levelQuestions.length}
-                  </span>
-                </div>
+              {/* Compact Header */}
+              <div className="flex items-center justify-between p-2.5 flex-shrink-0 border-b border-gray-200">
+                <h4 className="font-semibold text-gray-900 text-sm">{level}</h4>
                 <div className="flex items-center space-x-1">
                   <button
                     onClick={(e) => {
@@ -126,12 +123,12 @@ export function Sidebar({
                       e.stopPropagation();
                       onAdd(level);
                     }}
-                    className="p-1.5 rounded-lg hover:bg-purple-100 transition-colors group"
+                    className="p-1 rounded-md hover:bg-purple-100 transition-colors group"
                     title={`Add ${level} question`}
                     type="button"
                   >
                     <Plus
-                      size={12}
+                      size={14}
                       className="text-purple-600 group-hover:text-purple-700"
                     />
                   </button>
@@ -142,12 +139,12 @@ export function Sidebar({
                         e.stopPropagation();
                         onDeleteAll(level);
                       }}
-                      className="p-1.5 rounded-lg hover:bg-red-100 transition-colors group"
+                      className="p-1 rounded-md hover:bg-red-100 transition-colors group"
                       title={`Delete all ${level} questions`}
                       type="button"
                     >
                       <Trash2
-                        size={12}
+                        size={14}
                         className="text-red-500 group-hover:text-red-600"
                       />
                     </button>
@@ -155,17 +152,18 @@ export function Sidebar({
                 </div>
               </div>
 
-              <div className="flex-1 min-h-0 px-3 pb-3">
+              {/* Questions List */}
+              <div className="flex-1 min-h-0 p-2">
                 {levelQuestions.length === 0 ? (
-                  <div className="text-center py-4">
-                    <div className="text-gray-400 mb-1">
-                      <Plus size={16} className="mx-auto" />
+                  <div className="text-center py-6">
+                    <div className="text-gray-400 mb-2">
+                      <Plus size={20} className="mx-auto" />
                     </div>
-                    <p className="text-xs text-gray-500">No questions yet</p>
-                    <p className="text-xs text-gray-400">Click + to add one</p>
+                    <p className="text-xs text-gray-500 mb-1">No questions</p>
+                    <p className="text-xs text-gray-400">Click + to add</p>
                   </div>
                 ) : (
-                  <div className="h-full overflow-y-auto space-y-1 pr-1 scrollbar-thin scrollbar-thumb-purple-300 scrollbar-track-transparent hover:scrollbar-thumb-purple-400">
+                  <div className="h-full overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
                     {levelQuestions.map((q, idx) => (
                       <SidebarItem
                         key={q.id || idx}
@@ -189,6 +187,23 @@ export function Sidebar({
           );
         })}
       </div>
+
+      {/* Custom Scrollbar Styles */}
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+      `}</style>
     </aside>
   );
 }
