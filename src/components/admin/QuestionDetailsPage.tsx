@@ -12,14 +12,7 @@ import {
 } from "chart.js";
 import { useParams, useNavigate } from "react-router-dom";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface Answer {
   _id: string;
@@ -35,25 +28,27 @@ const QuestionDetailPage: React.FC = () => {
   const [err, setErr] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const fetchAnswers = async () => {
-    setLoading(true);
-    setErr(null);
-    try {
-      if (id) {
-        const data = await fetchAnswersByQuestionId(id);
-        setAnswers(data);
-      }
-    } catch (e: any) {
-      setErr(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchAnswers();
+    const doFetch = async () => {
+      setLoading(true);
+      setErr(null);
+
+      try {
+        if (id) {
+          const data = await fetchAnswersByQuestionId(id);
+          setAnswers(data);
+        }
+      } catch (e: any) {
+        setErr(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    doFetch();
   }, [id]);
 
+  // Build a frequency map of answers
   const answerFrequencies: Record<string, number> = {};
   answers.forEach((a) => {
     answerFrequencies[a.answer] = (answerFrequencies[a.answer] || 0) + 1;
