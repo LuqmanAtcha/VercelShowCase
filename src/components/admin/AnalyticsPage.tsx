@@ -10,13 +10,11 @@ import {
   ArcElement,
 } from "chart.js";
 import { Question, Answer } from "../../types";
-import { AnalyticsHeader } from "../analytics/AnalyticsHeader";
 import { StatsOverview } from "../analytics/StatsOverview";
 import { CategoryChart } from "../analytics/CategoryChart";
 import { LevelChart } from "../analytics/LevelChart";
 import { ChartContainer } from "../analytics/ChartContainer";
 import { Leaderboard } from "../analytics/Leaderboard";
-import { ResponsesTable } from "../analytics/ResponsesTable";
 import { useAnalyticsData } from "../hooks/useAnalyticsData";
 import { useNavigate } from "react-router-dom";
 
@@ -42,12 +40,8 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Answer[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [recentAnsweredIds, setRecentAnsweredIds] = useState<Set<string>>(
-    new Set()
-  );
 
   // Handle refresh button click
   const handleRefresh = async () => {
@@ -55,18 +49,8 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     setErr(null);
 
     try {
-      const { questions: fetchedQuestions, answers: fetchedAnswers } =
-        await fetchAllQuestionsAndAnswers();
+      const { questions: fetchedQuestions } = await fetchAllQuestionsAndAnswers();
       setQuestions(fetchedQuestions);
-      setAnswers(fetchedAnswers);
-
-      const sorted = [...fetchedAnswers].sort((a, b) => {
-        const t1 = new Date(a.createdAt || "").getTime();
-        const t2 = new Date(b.createdAt || "").getTime();
-        return t2 - t1;
-      });
-      const recentIds = new Set(sorted.slice(0, 5).map((a) => a.questionId));
-      setRecentAnsweredIds(recentIds);
     } catch (e: any) {
       setErr(e.message);
     } finally {
@@ -86,20 +70,8 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
       setErr(null);
 
       try {
-        const { questions: fetchedQuestions, answers: fetchedAnswers } =
-          await fetchAllQuestionsAndAnswers();
+        const { questions: fetchedQuestions } = await fetchAllQuestionsAndAnswers();
         setQuestions(fetchedQuestions);
-        setAnswers(fetchedAnswers);
-
-        const sorted = [...fetchedAnswers].sort((a, b) => {
-          const t1 = new Date(a.createdAt || "").getTime();
-          const t2 = new Date(b.createdAt || "").getTime();
-          return t2 - t1;
-        });
-        const recentIds = new Set(
-          sorted.slice(0, 5).map((a) => a.questionId)
-        );
-        setRecentAnsweredIds(recentIds);
       } catch (e: any) {
         setErr(e.message);
       } finally {
