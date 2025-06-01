@@ -1,7 +1,16 @@
-// src/api/config.ts
-export const API_BASE =
-  process.env.REACT_APP_API_URL;
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Environment variable ${name} is required but not set`);
+  }
+  return value;
+}
+
+export const API_BASE = requireEnv('MONGO_API');
+export const API_KEY = requireEnv('API_KEY');
+
 export const defaultHeaders = {
   "Content-Type": "application/json",
-  "x-api-key": "H0ylHQmpyATxhhRUV3iMEfQnq1xkZl0uUGN9g26OubSw6Od5H0XwKGCMJhaY7TwL",
-};
+  "x-api-key": API_KEY,
+} as const;

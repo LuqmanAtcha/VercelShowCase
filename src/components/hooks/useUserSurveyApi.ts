@@ -10,7 +10,7 @@ export function useUserSurveyApi(level: string) {
 
   useEffect(() => {
     if (!level) return;
-    
+
     (async () => {
       setLoading(true);
       setError("");
@@ -34,18 +34,18 @@ export function useUserSurveyApi(level: string) {
       await api.submitAllAnswers(answers);
     } catch (e: any) {
       setError(e.message);
-      throw e; // Re-throw to allow caller to handle
+      throw e;
     } finally {
       setSubmitting(false);
     }
   };
 
-  return { 
-    questions, 
-    loading, 
-    error, 
+  return {
+    questions,
+    loading,
+    error,
     submitting,
-    setError, 
-    submitAllAnswers 
+    setError,
+    submitAllAnswers,
   };
 }
