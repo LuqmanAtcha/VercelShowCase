@@ -11,8 +11,9 @@ import LoginPage from "./components/auth/LoginPage";
 import NotFound from "./components/common/NotFound";
 import UserSurvey from "./components/user/UserSurvey";
 import AnalyticsPage from "./components/admin/AnalyticsPage";
-import SurveyPage from "./components/admin/SurveyPage"; // <--- Add this import
+import SurveyPage from "./components/admin/SurveyPage";
 import QuestionDetailPage from "./components/admin/QuestionDetailsPage";
+import ResponsesPage from "./components/analytics/ResponsesPage";
 import { fetchAllQuestionsAndAnswers } from "./components/api/adminSurveyApi";
 
 const ADMIN_PASSWORD = "AdminForm123";
@@ -29,6 +30,7 @@ const App: React.FC = () => (
         }
       />
       <Route path="/analytics/question/:id" element={<QuestionDetailPage />} />
+      <Route path="/responses" element={<ResponsesPage />} />
       <Route path="/login" element={<LoginWrapper />} />
       <Route path="/form" element={<UserSurvey />} />
       <Route path="/dashboard" element={<SurveyPage />} />
