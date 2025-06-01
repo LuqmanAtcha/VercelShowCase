@@ -3,7 +3,7 @@ import { X, Plus } from "lucide-react";
 import { Question } from "../../types";
 
 // Centralize the allowed options
-const categories = ["Vocabulary", "Grammar", "Culture"] as const;
+const categories = ["Vocabulary", "Grammar", "Culture", "Literature", "History"] as const;
 const levels = ["Beginner", "Intermediate", "Advanced"] as const;
 
 interface QuestionCardProps {

@@ -31,12 +31,20 @@ interface AnalyticsData {
 
 export const useAnalyticsData = (questions: Question[]): AnalyticsData => {
   return useMemo(() => {
-    const predefinedCategories = ["Grammar", "Vocabulary", "Culture"];
+    const predefinedCategories = [
+      "Vocabulary",
+      "Grammar",
+      "Culture",
+      "Literature",
+      "History",
+    ];
 
     const categoryCounts: Record<string, number> = {
-      Grammar: 0,
       Vocabulary: 0,
+      Grammar: 0,
       Culture: 0,
+      Literature: 0,
+      History: 0,
     };
     const levelCounts: Record<string, number> = {};
     const answerCounts: Record<string, number> = {};
