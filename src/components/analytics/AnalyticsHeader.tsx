@@ -6,7 +6,9 @@ interface AnalyticsHeaderProps {
   onRefresh: () => void;
 }
 
-export const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({ onRefresh }) => {
+export const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({
+  onRefresh,
+}) => {
   const navigate = useNavigate();
 
   return (
@@ -21,7 +23,7 @@ export const AnalyticsHeader: React.FC<AnalyticsHeaderProps> = ({ onRefresh }) =
         </button>
         <button
           className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/dashBoard")}
         >
           ← Back
         </button>

@@ -44,34 +44,38 @@ const ResponsesPage: React.FC = () => {
     }
   };
 
-  // Initial fetch on mount
+  // Initial fetch on mount with admin check
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
+    if (localStorage.getItem("isAdmin") !== "true") {
+      navigate("/login", { replace: true });
+    } else {
+      const fetchData = async () => {
+        setLoading(true);
+        setError(null);
 
-      try {
-        const { questions: fetchedQuestions, answers: fetchedAnswers } =
-          await fetchAllQuestionsAndAnswers();
-        setQuestions(fetchedQuestions);
-        setAnswers(fetchedAnswers);
+        try {
+          const { questions: fetchedQuestions, answers: fetchedAnswers } =
+            await fetchAllQuestionsAndAnswers();
+          setQuestions(fetchedQuestions);
+          setAnswers(fetchedAnswers);
 
-        const sorted = [...fetchedAnswers].sort((a, b) => {
-          const t1 = new Date(a.createdAt || "").getTime();
-          const t2 = new Date(b.createdAt || "").getTime();
-          return t2 - t1;
-        });
-        const recentIds = new Set(sorted.slice(0, 5).map((a) => a.questionId));
-        setRecentAnsweredIds(recentIds);
-      } catch (e: any) {
-        setError(e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+          const sorted = [...fetchedAnswers].sort((a, b) => {
+            const t1 = new Date(a.createdAt || "").getTime();
+            const t2 = new Date(b.createdAt || "").getTime();
+            return t2 - t1;
+          });
+          const recentIds = new Set(sorted.slice(0, 5).map((a) => a.questionId));
+          setRecentAnsweredIds(recentIds);
+        } catch (e: any) {
+          setError(e.message);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    fetchData();
-  }, []);
+      fetchData();
+    }
+  }, [navigate]);
 
   // Use the custom hook to process data
   const analyticsData = useAnalyticsData(questions);
@@ -114,7 +118,7 @@ const ResponsesPage: React.FC = () => {
               </button>
               <button
                 className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate("/dashboard")}
               >
                 ← Back
               </button>
@@ -159,7 +163,7 @@ const ResponsesPage: React.FC = () => {
               </button>
               <button
                 className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-                onClick={() => navigate(-1)}
+                onClick={() => navigate("/dashboard")}
               >
                 ← Back
               </button>
@@ -208,7 +212,7 @@ const ResponsesPage: React.FC = () => {
             </button>
             <button
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/dashboard")}
             >
               ← Back
             </button>

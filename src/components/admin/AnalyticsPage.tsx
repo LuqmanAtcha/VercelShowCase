@@ -76,32 +76,38 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 
   // Initial fetch on mount
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setErr(null);
+    if (localStorage.getItem("isAdmin") !== "true") {
+      navigate("/login", { replace: true });
+    } else {
+      const fetchData = async () => {
+        setLoading(true);
+        setErr(null);
 
-      try {
-        const { questions: fetchedQuestions, answers: fetchedAnswers } =
-          await fetchAllQuestionsAndAnswers();
-        setQuestions(fetchedQuestions);
-        setAnswers(fetchedAnswers);
+        try {
+          const { questions: fetchedQuestions, answers: fetchedAnswers } =
+            await fetchAllQuestionsAndAnswers();
+          setQuestions(fetchedQuestions);
+          setAnswers(fetchedAnswers);
 
-        const sorted = [...fetchedAnswers].sort((a, b) => {
-          const t1 = new Date(a.createdAt || "").getTime();
-          const t2 = new Date(b.createdAt || "").getTime();
-          return t2 - t1;
-        });
-        const recentIds = new Set(sorted.slice(0, 5).map((a) => a.questionId));
-        setRecentAnsweredIds(recentIds);
-      } catch (e: any) {
-        setErr(e.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+          const sorted = [...fetchedAnswers].sort((a, b) => {
+            const t1 = new Date(a.createdAt || "").getTime();
+            const t2 = new Date(b.createdAt || "").getTime();
+            return t2 - t1;
+          });
+          const recentIds = new Set(
+            sorted.slice(0, 5).map((a) => a.questionId)
+          );
+          setRecentAnsweredIds(recentIds);
+        } catch (e: any) {
+          setErr(e.message);
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    fetchData();
-  }, [fetchAllQuestionsAndAnswers]);
+      fetchData();
+    }
+  }, [fetchAllQuestionsAndAnswers, navigate]);
 
   // Use the custom hook to process data
   const analyticsData = useAnalyticsData(questions);
@@ -125,14 +131,14 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
               🔄 Refresh
             </button>
             <button
-              onClick={() => navigate('/responses')}
+              onClick={() => navigate("/responses")}
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
             >
               📋 Responses
             </button>
             <button
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/dashboard")}
             >
               ← Back
             </button>
@@ -169,14 +175,14 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
               🔄 Refresh
             </button>
             <button
-              onClick={() => navigate('/responses')}
+              onClick={() => navigate("/responses")}
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
             >
               📋 Responses
             </button>
             <button
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/dashboard")}
             >
               ← Back
             </button>
@@ -216,20 +222,19 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             🔄 Refresh
           </button>
           <button
-            onClick={() => navigate('/responses')}
+            onClick={() => navigate("/responses")}
             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
           >
             📋 Responses
           </button>
           <button
             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/dashboard")}
           >
             ← Back
           </button>
         </div>
       </div>
-
 
       <StatsOverview
         totalResponses={analyticsData.totalResponses}
