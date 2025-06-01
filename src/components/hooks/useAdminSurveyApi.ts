@@ -1,18 +1,47 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import * as api from "../api/adminSurveyApi";
 import { Question } from "../../types";
+
+// Cache duration: 30 seconds (adjust as needed)
+const CACHE_DURATION = 30 * 1000;
 
 export function useAdminSurveyApi() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  
+  // Add cache to avoid unnecessary refetches
+  const cache = useRef<{
+    questions: Question[] | null;
+    timestamp: number;
+  }>({
+    questions: null,
+    timestamp: 0
+  });
 
-  const fetchQuestions = useCallback(async () => {
+  const fetchQuestions = useCallback(async (forceRefresh = false) => {
+    const now = Date.now();
+    
+    // Check if we have fresh cached data
+    if (!forceRefresh && 
+        cache.current.questions && 
+        (now - cache.current.timestamp) < CACHE_DURATION) {
+      setQuestions(cache.current.questions);
+      return;
+    }
+
     setLoading(true);
     setError("");
+    
     try {
       const data = await api.fetchAllQuestions();
       setQuestions(data);
+      
+      // Update cache
+      cache.current = {
+        questions: data,
+        timestamp: now
+      };
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -27,7 +56,9 @@ export function useAdminSurveyApi() {
       setError("");
       try {
         await api.postSurveyQuestions(newQuestions);
-        await fetchQuestions(); // Refresh the list
+        // Clear cache to force fresh fetch
+        cache.current.questions = null;
+        await fetchQuestions(true);
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -43,19 +74,22 @@ export function useAdminSurveyApi() {
       setLoading(true);
       setError("");
       try {
-        // Update existing questions one by one
+        // Batch operations for better performance
         const existingQuestions = questionsToUpdate.filter(q => q._id && q._id !== "");
-        for (const question of existingQuestions) {
-          await api.updateQuestionById(question);
-        }
+        const newQuestions = questionsToUpdate.filter(q => !q._id || q._id === "");
+        
+        // Run operations in parallel when possible
+        const updatePromises = existingQuestions.map(q => api.updateQuestionById(q));
+        await Promise.all(updatePromises);
         
         // Create new questions
-        const newQuestions = questionsToUpdate.filter(q => !q._id || q._id === "");
         if (newQuestions.length > 0) {
           await api.postSurveyQuestions(newQuestions);
         }
         
-        await fetchQuestions(); // Refresh the list
+        // Clear cache to force fresh fetch
+        cache.current.questions = null;
+        await fetchQuestions(true);
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -72,8 +106,14 @@ export function useAdminSurveyApi() {
       setError("");
       try {
         const ids = toDelete.map((q) => q._id).filter(Boolean) as string[];
-        await api.deleteQuestions(ids);
-        await fetchQuestions();
+        
+        // Delete in parallel for better performance
+        const deletePromises = ids.map(id => api.deleteQuestionById(id));
+        await Promise.all(deletePromises);
+        
+        // Clear cache to force fresh fetch
+        cache.current.questions = null;
+        await fetchQuestions(true);
       } catch (e: any) {
         setError(e.message);
       } finally {
