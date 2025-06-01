@@ -29,6 +29,12 @@ const QuestionDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Admin check first
+    if (localStorage.getItem("isAdmin") !== "true") {
+      navigate("/login", { replace: true });
+      return;
+    }
+
     const doFetch = async () => {
       setLoading(true);
       setErr(null);
@@ -46,7 +52,7 @@ const QuestionDetailPage: React.FC = () => {
     };
 
     doFetch();
-  }, [id]);
+  }, [id, navigate]);
 
   // Build a frequency map of answers
   const answerFrequencies: Record<string, number> = {};
