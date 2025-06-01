@@ -10,11 +10,11 @@ import {
   ArcElement,
 } from "chart.js";
 import { Question, Answer } from "../../types";
-import { StatsOverview } from "../analytics/StatsOverview";
-import { CategoryChart } from "../analytics/CategoryChart";
-import { LevelChart } from "../analytics/LevelChart";
-import { ChartContainer } from "../analytics/ChartContainer";
-import { Leaderboard } from "../analytics/Leaderboard";
+import { StatsOverview } from "./StatsOverview";
+import { CategoryChart } from "./CategoryChart";
+import { LevelChart } from "./LevelChart";
+import { ChartContainer } from "./ChartContainer";
+import { Leaderboard } from "./Leaderboard";
 import { useAnalyticsData } from "../hooks/useAnalyticsData";
 import { useNavigate } from "react-router-dom";
 
@@ -49,7 +49,8 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     setErr(null);
 
     try {
-      const { questions: fetchedQuestions } = await fetchAllQuestionsAndAnswers();
+      const { questions: fetchedQuestions } =
+        await fetchAllQuestionsAndAnswers();
       setQuestions(fetchedQuestions);
     } catch (e: any) {
       setErr(e.message);
@@ -70,7 +71,8 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
       setErr(null);
 
       try {
-        const { questions: fetchedQuestions } = await fetchAllQuestionsAndAnswers();
+        const { questions: fetchedQuestions } =
+          await fetchAllQuestionsAndAnswers();
         setQuestions(fetchedQuestions);
       } catch (e: any) {
         setErr(e.message);

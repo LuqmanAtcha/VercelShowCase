@@ -10,7 +10,7 @@ import {
 import LoginPage from "./components/auth/LoginPage";
 import NotFound from "./components/common/NotFound";
 import UserSurvey from "./components/user/UserSurvey";
-import AnalyticsPage from "./components/admin/AnalyticsPage";
+import AnalyticsPage from "./components/analytics/AnalyticsPage";
 import SurveyPage from "./components/admin/SurveyPage";
 import QuestionDetailPage from "./components/admin/QuestionDetailsPage";
 import ResponsesPage from "./components/analytics/ResponsesPage";
