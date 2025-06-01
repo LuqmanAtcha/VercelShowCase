@@ -74,39 +74,40 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     }
   };
 
-  // Initial fetch on mount
+  // Initial fetch on mount with admin check
   useEffect(() => {
     if (localStorage.getItem("isAdmin") !== "true") {
       navigate("/login", { replace: true });
-    } else {
-      const fetchData = async () => {
-        setLoading(true);
-        setErr(null);
-
-        try {
-          const { questions: fetchedQuestions, answers: fetchedAnswers } =
-            await fetchAllQuestionsAndAnswers();
-          setQuestions(fetchedQuestions);
-          setAnswers(fetchedAnswers);
-
-          const sorted = [...fetchedAnswers].sort((a, b) => {
-            const t1 = new Date(a.createdAt || "").getTime();
-            const t2 = new Date(b.createdAt || "").getTime();
-            return t2 - t1;
-          });
-          const recentIds = new Set(
-            sorted.slice(0, 5).map((a) => a.questionId)
-          );
-          setRecentAnsweredIds(recentIds);
-        } catch (e: any) {
-          setErr(e.message);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchData();
+      return;
     }
+
+    const fetchData = async () => {
+      setLoading(true);
+      setErr(null);
+
+      try {
+        const { questions: fetchedQuestions, answers: fetchedAnswers } =
+          await fetchAllQuestionsAndAnswers();
+        setQuestions(fetchedQuestions);
+        setAnswers(fetchedAnswers);
+
+        const sorted = [...fetchedAnswers].sort((a, b) => {
+          const t1 = new Date(a.createdAt || "").getTime();
+          const t2 = new Date(b.createdAt || "").getTime();
+          return t2 - t1;
+        });
+        const recentIds = new Set(
+          sorted.slice(0, 5).map((a) => a.questionId)
+        );
+        setRecentAnsweredIds(recentIds);
+      } catch (e: any) {
+        setErr(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [fetchAllQuestionsAndAnswers, navigate]);
 
   // Use the custom hook to process data
