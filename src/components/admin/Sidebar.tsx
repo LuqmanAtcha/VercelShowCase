@@ -81,8 +81,8 @@ export function Sidebar({
     : 0;
 
   return (
-    <aside className="w-full max-w-6xl bg-white rounded-2xl shadow-lg border border-gray-100 p-4 space-y-4 text-gray-800 h-full overflow-hidden flex flex-col">
-      {/* Header */}
+    <aside className="w-full max-w-6xl bg-white rounded-2xl shadow-lg border border-gray-100 p-4 space-y-4 text-gray-800 h-full flex flex-col">
+      {/* Header - Fixed */}
       <div className="flex-shrink-0">
         <h3 className="text-lg font-bold text-gray-900 mb-3">Question Bank</h3>
 
@@ -103,105 +103,119 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Level Sections */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-3 overflow-hidden">
-        {LEVELS.map((level) => {
-          const levelQuestions = questionsByLevel[level] || [];
-          // Removed numeric display beside Level title
-          return (
-            <div
-              key={level}
-              className="bg-gray-50 rounded-xl border border-gray-100 flex flex-col min-h-0"
-            >
-              {/* Compact Header */}
-              <div className="flex items-center justify-between p-2.5 flex-shrink-0 border-b border-gray-200">
-                <h4 className="font-semibold text-gray-900 text-sm">{level}</h4>
-                <div className="flex items-center space-x-1">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onAdd(level);
-                    }}
-                    className="p-1 rounded-md hover:bg-purple-100 transition-colors group"
-                    title={`Add ${level} question`}
-                    type="button"
-                  >
-                    <Plus
-                      size={14}
-                      className="text-purple-600 group-hover:text-purple-700"
-                    />
-                  </button>
-                  {levelQuestions.length > 0 && (
+      {/* Level Sections - Scrollable */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-3 overflow-hidden">
+          {LEVELS.map((level) => {
+            const levelQuestions = questionsByLevel[level] || [];
+            return (
+              <div
+                key={level}
+                className="bg-gray-50 rounded-xl border border-gray-100 flex flex-col min-h-0 h-full"
+              >
+                {/* Level Header - Fixed */}
+                <div className="flex items-center justify-between p-2.5 flex-shrink-0 border-b border-gray-200">
+                  <h4 className="font-semibold text-gray-900 text-sm">
+                    {level}
+                  </h4>
+                  <div className="flex items-center space-x-1">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        onDeleteAll(level);
+                        onAdd(level);
                       }}
-                      className="p-1 rounded-md hover:bg-red-100 transition-colors group"
-                      title={`Delete all ${level} questions`}
+                      className="p-1 rounded-md hover:bg-purple-100 transition-colors group"
+                      title={`Add ${level} question`}
                       type="button"
                     >
-                      <Trash2
+                      <Plus
                         size={14}
-                        className="text-red-500 group-hover:text-red-600"
+                        className="text-purple-600 group-hover:text-purple-700"
                       />
                     </button>
+                    {levelQuestions.length > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onDeleteAll(level);
+                        }}
+                        className="p-1 rounded-md hover:bg-red-100 transition-colors group"
+                        title={`Delete all ${level} questions`}
+                        type="button"
+                      >
+                        <Trash2
+                          size={14}
+                          className="text-red-500 group-hover:text-red-600"
+                        />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Questions List - Scrollable */}
+                <div className="flex-1 min-h-0 p-2 overflow-hidden">
+                  {levelQuestions.length === 0 ? (
+                    <div className="text-center py-6">
+                      <div className="text-gray-400 mb-2">
+                        <Plus size={20} className="mx-auto" />
+                      </div>
+                      <p className="text-xs text-gray-500 mb-1">No questions</p>
+                      <p className="text-xs text-gray-400">Click + to add</p>
+                    </div>
+                  ) : (
+                    <div className="h-full overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                      {levelQuestions.map((q, idx) => (
+                        <SidebarItem
+                          key={q.id || idx}
+                          idx={idx}
+                          question={q}
+                          isCurrent={
+                            level === currentLevel && idx === currentIndex
+                          }
+                          isCompleted={
+                            !!(
+                              q.question?.trim() &&
+                              q.questionCategory &&
+                              q.questionLevel
+                            )
+                          }
+                          onSelect={() => onSelect(level, idx)}
+                        />
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
-
-              {/* Questions List */}
-              <div className="flex-1 min-h-0 p-2">
-                {levelQuestions.length === 0 ? (
-                  <div className="text-center py-6">
-                    <div className="text-gray-400 mb-2">
-                      <Plus size={20} className="mx-auto" />
-                    </div>
-                    <p className="text-xs text-gray-500 mb-1">No questions</p>
-                    <p className="text-xs text-gray-400">Click + to add</p>
-                  </div>
-                ) : (
-                  <div className="h-full overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                    {levelQuestions.map((q, idx) => (
-                      <SidebarItem
-                        key={q.id || idx}
-                        idx={idx}
-                        question={q}
-                        isCurrent={level === currentLevel && idx === currentIndex}
-                        isCompleted={
-                          !!(
-                            q.question?.trim() &&
-                            q.questionCategory &&
-                            q.questionLevel
-                          )
-                        }
-                        onSelect={() => onSelect(level, idx)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
       {/* Custom Scrollbar Styles */}
       <style>{`
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 #f1f5f9;
+        }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+          width: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
+          background: #f1f5f9;
+          border-radius: 4px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
           background: #cbd5e1;
-          border-radius: 2px;
+          border-radius: 4px;
+          border: 1px solid #e2e8f0;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #94a3b8;
+        }
+        .custom-scrollbar::-webkit-scrollbar-corner {
+          background: #f1f5f9;
         }
       `}</style>
     </aside>

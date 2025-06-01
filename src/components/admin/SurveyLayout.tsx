@@ -91,8 +91,9 @@ function SurveyLayout({
       {/* Main Content Container */}
       <div className="px-4 py-4">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 xl:grid-cols-7 gap-4 h-[calc(100vh-160px)]">
-            {/* Sidebar */}
+          {/* Set fixed height for consistent layout */}
+          <div className="grid grid-cols-1 xl:grid-cols-7 gap-4" style={{ height: 'calc(100vh - 160px)' }}>
+            {/* Sidebar - Fixed height */}
             <div className="xl:col-span-3 order-2 xl:order-1">
               <div className="h-full">
                 <MemoizedSidebar
@@ -107,9 +108,9 @@ function SurveyLayout({
               </div>
             </div>
 
-            {/* Main Content Area */}
-            <div className="xl:col-span-4 order-1 xl:order-2 flex flex-col min-h-0">
-              {/* Title Section */}
+            {/* Main Content Area - Fixed height */}
+            <div className="xl:col-span-4 order-1 xl:order-2 flex flex-col h-full">
+              {/* Title Section - Fixed height */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div>
@@ -133,7 +134,7 @@ function SurveyLayout({
                 </div>
               </div>
 
-              {/* Question Content */}
+              {/* Question Content - Remaining height */}
               <div className="flex-1 min-h-0">
                 {questions.length === 0 ? (
                   <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center h-full flex items-center justify-center">
@@ -178,7 +179,7 @@ function SurveyLayout({
                   </div>
                 ) : (
                   questions[currentIndex] && (
-                    <div className="h-full">
+                    <div className="h-full overflow-auto">
                       <MemoizedQuestionCard
                         question={questions[currentIndex]}
                         index={currentIndex}
