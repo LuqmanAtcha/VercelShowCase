@@ -44,6 +44,9 @@ function SidebarItem({
           : "hover:bg-gray-50 hover:shadow-sm border-l-4 border-transparent"
       }`}
       onClick={onSelect}
+      tabIndex={0}
+      title={question.question || "Untitled Question"}
+      aria-label={question.question || "Untitled Question"}
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <div
@@ -53,7 +56,10 @@ function SidebarItem({
         >
           {idx + 1}
         </div>
-        <span className="text-xs font-medium truncate">
+        <span
+          className="text-base font-medium truncate"
+          title={question.question}
+        >
           {question.question || "Untitled Question"}
         </span>
       </div>
@@ -80,13 +86,18 @@ export function Sidebar({
     ? (completedCount / totalQuestions) * 100
     : 0;
 
-  return (
-    <aside className="w-full max-w-6xl bg-white rounded-2xl shadow-lg border border-gray-100 p-4 space-y-4 text-gray-800 h-full flex flex-col">
-      {/* Header - Fixed */}
-      <div className="flex-shrink-0">
-        <h3 className="text-lg font-bold text-gray-900 mb-3">Question Bank</h3>
+  // Set the max height for the scrollable question list area in each column (in rem units)
+  const MAX_HEIGHT_REM = 22;
 
-        {/* Compact Progress Section */}
+  return (
+    <aside
+      className="w-full max-w-6xl bg-white rounded-2xl shadow-lg border border-gray-100 p-4 space-y-4 text-gray-800"
+      role="navigation"
+      aria-label="Question Navigation Sidebar"
+    >
+      {/* Header */}
+      <div>
+        <h3 className="text-lg font-bold text-gray-900 mb-3">Question Bank</h3>
         <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-3 mb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-700">Progress</span>
@@ -103,101 +114,90 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Level Sections - Scrollable */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-3 overflow-hidden">
-          {LEVELS.map((level) => {
-            const levelQuestions = questionsByLevel[level] || [];
-            return (
-              <div
-                key={level}
-                className="bg-gray-50 rounded-xl border border-gray-100 flex flex-col min-h-0 h-full"
-              >
-                {/* Level Header - Fixed */}
-                <div className="flex items-center justify-between p-2.5 flex-shrink-0 border-b border-gray-200">
-                  <h4 className="font-semibold text-gray-900 text-sm">
-                    {level}
-                  </h4>
-                  <div className="flex items-center space-x-1">
+      {/* Columns: Now using flex so columns never overlap and always fit */}
+      <div className="flex gap-4 w-full">
+        {LEVELS.map((level) => {
+          const levelQuestions = questionsByLevel[level] || [];
+          return (
+            <div
+              key={level}
+              className="bg-white/90 rounded-xl border border-gray-200 shadow flex flex-col flex-1 min-w-0"
+              // If you want to prevent columns from getting too skinny, use min-w-[220px] max-w-[340px] as desired.
+            >
+              {/* Level Header */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gradient-to-r from-white via-purple-50 to-white rounded-t-xl">
+                <h4 className="font-semibold text-gray-900 text-sm">{level}</h4>
+                <div className="flex items-center space-x-1">
+                  {levelQuestions.length > 0 && (
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        onAdd(level);
+                        if (
+                          window.confirm(
+                            `Delete all ${level} questions? This cannot be undone.`
+                          )
+                        ) {
+                          onDeleteAll(level);
+                        }
                       }}
-                      className="p-1 rounded-md hover:bg-purple-100 transition-colors group"
-                      title={`Add ${level} question`}
+                      className="p-1 rounded-md hover:bg-red-100 transition-colors group"
+                      title={`Delete all ${level} questions`}
                       type="button"
                     >
-                      <Plus
+                      <Trash2
                         size={14}
-                        className="text-purple-600 group-hover:text-purple-700"
+                        className="text-red-500 group-hover:text-red-600"
                       />
                     </button>
-                    {levelQuestions.length > 0 && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          onDeleteAll(level);
-                        }}
-                        className="p-1 rounded-md hover:bg-red-100 transition-colors group"
-                        title={`Delete all ${level} questions`}
-                        type="button"
-                      >
-                        <Trash2
-                          size={14}
-                          className="text-red-500 group-hover:text-red-600"
-                        />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Questions List - Scrollable */}
-                <div className="flex-1 min-h-0 p-2 overflow-hidden">
-                  {levelQuestions.length === 0 ? (
-                    <div className="text-center py-6">
-                      <div className="text-gray-400 mb-2">
-                        <Plus size={20} className="mx-auto" />
-                      </div>
-                      <p className="text-xs text-gray-500 mb-1">No questions</p>
-                      <p className="text-xs text-gray-400">Click + to add</p>
-                    </div>
-                  ) : (
-                    <div className="h-full overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                      {levelQuestions.map((q, idx) => (
-                        <SidebarItem
-                          key={q.id || idx}
-                          idx={idx}
-                          question={q}
-                          isCurrent={
-                            level === currentLevel && idx === currentIndex
-                          }
-                          isCompleted={
-                            !!(
-                              q.question?.trim() &&
-                              q.questionCategory &&
-                              q.questionLevel
-                            )
-                          }
-                          onSelect={() => onSelect(level, idx)}
-                        />
-                      ))}
-                    </div>
                   )}
                 </div>
               </div>
-            );
-          })}
-        </div>
+              {/* Questions List */}
+              <div
+                className="overflow-y-scroll p-2 custom-scrollbar"
+                style={{
+                  maxHeight: `${MAX_HEIGHT_REM}rem`,
+                  minHeight: 0,
+                }}
+              >
+                {levelQuestions.length === 0 ? (
+                  <div className="text-center py-6">
+                    <div className="text-gray-400 mb-2">
+                      <Plus size={20} className="mx-auto" />
+                    </div>
+                    <p className="text-xs text-gray-500 mb-1">No questions</p>
+                    <p className="text-xs text-gray-400">Click + to add</p>
+                  </div>
+                ) : (
+                  levelQuestions.map((q, idx) => (
+                    <SidebarItem
+                      key={q.id || idx}
+                      idx={idx}
+                      question={q}
+                      isCurrent={level === currentLevel && idx === currentIndex}
+                      isCompleted={
+                        !!(
+                          q.question?.trim() &&
+                          q.questionCategory &&
+                          q.questionLevel
+                        )
+                      }
+                      onSelect={() => onSelect(level, idx)}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
-
       {/* Custom Scrollbar Styles */}
       <style>{`
         .custom-scrollbar {
           scrollbar-width: thin;
           scrollbar-color: #cbd5e1 #f1f5f9;
+          scrollbar-gutter: stable both-edges;
         }
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;
