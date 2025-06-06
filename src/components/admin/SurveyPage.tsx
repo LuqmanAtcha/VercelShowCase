@@ -29,33 +29,27 @@ const SurveyPage: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [mode, setMode] = useState<"create" | "edit">("edit");
   const [showPreview, setShowPreview] = useState(false);
-  
-  // Add state to track if we've shown the UI immediately
-  const [showUIImmediately, setShowUIImmediately] = useState(false);
- 
-  // Delete confirmation dialog state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [levelToDelete, setLevelToDelete] = useState<Level>("Beginner");
- 
+  const [showUIImmediately, setShowUIImmediately] = useState(false);
   const navigate = useNavigate();
  
-  // On mount: verify admin & show UI immediately, then fetch in background
+  // Check if admin on mount
   useEffect(() => {
     if (localStorage.getItem("isAdmin") !== "true") {
       navigate("/login", { replace: true });
-    } else {
-      // Show UI immediately with empty placeholders
-      setShowUIImmediately(true);
-      
-      // Then fetch questions in background
-      fetchQuestions();
+      return;
     }
-  }, [fetchQuestions, navigate]);
-
-  // Initialize empty placeholders immediately when component mounts
+  }, [navigate]);
+ 
+  // Initialize with empty questions
   useEffect(() => {
-    if (showUIImmediately && questionsByLevel.Beginner.length === 0) {
+    // Show empty questions first, then fetch from API
+    // This prevents flickering when questions are loading
+    if (!showUIImmediately) {
       const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
+      
+      // Initialize with one empty question per level
       LEVELS.forEach((lvl) => {
         emptyMap[lvl] = [{
           _id: "",
@@ -63,13 +57,19 @@ const SurveyPage: React.FC = () => {
           questionType: "Input",
           questionCategory: "",
           questionLevel: lvl,
+          timesAnswered: 0
         }];
       });
+      
       setQuestionsByLevel(emptyMap);
+      setShowUIImmediately(true);
     }
-  }, [showUIImmediately, questionsByLevel.Beginner.length]);
+    
+    // Then load actual questions
+    fetchQuestions();
+  }, [fetchQuestions]);
  
-  // Group flat questions into per-level buckets (only when questions arrive)
+  // Populate questions by level when they load
   useEffect(() => {
     if (!showUIImmediately || questions.length === 0) return;
 
@@ -91,6 +91,7 @@ const SurveyPage: React.FC = () => {
           questionType: "Input",
           questionCategory: "",
           questionLevel: lvl,
+          timesAnswered: 0
         });
       }
     });
@@ -116,10 +117,24 @@ const SurveyPage: React.FC = () => {
       questionType: "Input",
       questionCategory: lastCat,
       questionLevel: level,
+      timesAnswered: 0
     };
     updateTabQuestions(level, [...list, newQ]);
     setCurrentTab(level);
     setCurrentIndex(list.length);
+  };
+ 
+  const onPrevQuestion = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+ 
+  const onNextQuestion = () => {
+    const list = questionsByLevel[currentTab];
+    if (currentIndex < list.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
   };
  
   const onDeleteCurrent = async () => {
@@ -159,13 +174,14 @@ const SurveyPage: React.FC = () => {
         questionType: "Input",
         questionCategory: "",
         questionLevel: levelToDelete,
+        timesAnswered: 0
       },
     ]);
     setCurrentIndex(0);
     setShowDeleteDialog(false);
   };
  
-  const onUpdateQuestion = (field: keyof Question, value: string) => {
+  const onUpdateQuestion = (field: keyof Question, value: any) => {
     const list = questionsByLevel[currentTab];
     const q = list[currentIndex];
    
@@ -179,7 +195,20 @@ const SurveyPage: React.FC = () => {
       setCurrentIndex(questionsByLevel[newLevel].length);
     } else {
       const newList = [...list];
-      newList[currentIndex] = { ...q, [field]: value };
+      
+      // Handle special case for question type change
+      if (field === "questionType") {
+        // If changing from MCQ to Input, we need to remove the answers array
+        if (value === "Input" && q.answers) {
+          const { answers, ...rest } = q;
+          newList[currentIndex] = { ...rest, [field]: value };
+        } else {
+          newList[currentIndex] = { ...q, [field]: value };
+        }
+      } else {
+        newList[currentIndex] = { ...q, [field]: value };
+      }
+      
       updateTabQuestions(currentTab, newList);
     }
     setError("");
@@ -218,6 +247,7 @@ const SurveyPage: React.FC = () => {
           questionType: "Input",
           questionCategory: "",
           questionLevel: lvl,
+          timesAnswered: 0
         }];
       });
       setQuestionsByLevel(emptyMap);
@@ -279,17 +309,7 @@ const SurveyPage: React.FC = () => {
         formDescription="Add or edit questions for each level."
       />
 
-      {/* Show subtle loading indicator in header when background fetch is happening */}
-      {isLoading && showUIImmediately && (
-        <div className="fixed top-4 right-4 z-50">
-          <div className="bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-3 flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
-            <span className="text-sm text-gray-700">Syncing questions...</span>
-          </div>
-        </div>
-      )}
-     
-      {/* Delete Confirmation Dialog */}
+      {/* Delete All Questions Dialog */}
       {showDeleteDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md text-center animate-in slide-in-from-bottom-4 duration-300">
@@ -305,7 +325,7 @@ const SurveyPage: React.FC = () => {
             </p>
             <div className="flex justify-center gap-4">
               <button
-                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                className="px-6 py-3 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
                 onClick={confirmDeleteAllQuestions}
               >
                 Yes, Delete All
@@ -323,5 +343,5 @@ const SurveyPage: React.FC = () => {
     </>
   );
 };
- 
+
 export default SurveyPage;

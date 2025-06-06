@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Check } from "lucide-react";
 import { Question } from "../../types";
 
 // Centralize the allowed options
 const categories = ["Vocabulary", "Grammar", "Culture", "Literature", "History"] as const;
 const levels = ["Beginner", "Intermediate", "Advanced"] as const;
+const questionTypes = ["Input", "Mcq"] as const;
 
 interface QuestionCardProps {
   question: Question;
@@ -14,7 +15,7 @@ interface QuestionCardProps {
   onPrev(): void;
   onNext(): void;
   onDelete(): void;
-  onUpdate(field: keyof Question, value: string): void;
+  onUpdate(field: keyof Question, value: string | any): void;
   onAddNext(): void;
   currentTabLevel: string;
 }
@@ -29,6 +30,18 @@ interface ConfirmationDialogProps {
   onCancel: () => void;
 }
 
+interface McqOption {
+  answer: string;
+  isCorrect: boolean;
+}
+
+// For typing any answer format
+interface AnyAnswer {
+  answer: string;
+  [key: string]: any;
+}
+
+// Define the component outside of the main component
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   show,
   title,
@@ -86,12 +99,70 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
     const [showMoveNextDialog, setShowMoveNextDialog] = useState(false);
     const [showClearDialog, setShowClearDialog] = useState(false);
     const [showAddNextDialog, setShowAddNextDialog] = useState(false);
+    
+    // Default MCQ options if none exist
+    const defaultMcqOptions: McqOption[] = [
+      { answer: "", isCorrect: true },
+      { answer: "", isCorrect: false },
+      { answer: "", isCorrect: false },
+      { answer: "", isCorrect: false },
+    ];
+    
+    // Get MCQ options from question or use defaults
+    // Handle both the API response format and our local format
+    const mcqOptions = question.answers && question.answers.length > 0 
+      ? question.answers.map((a) => {
+          // Type assertion to help TypeScript understand we know the structure
+          const answer = a as AnyAnswer;
+          
+          // Check if this is a standard API answer or an MCQ answer
+          if ('isCorrect' in answer) {
+            // It's already in the format we need
+            return {
+              answer: answer.answer || "",
+              isCorrect: answer.isCorrect || false
+            };
+          } else {
+            // It's a standard answer, convert to MCQ format
+            // For existing questions, assume first answer is correct if not specified
+            return {
+              answer: answer.answer || "",
+              isCorrect: false // Default to false, we'll set one to true below
+            };
+          }
+        })
+      : defaultMcqOptions;
+    
+    // Ensure at least one option is marked as correct if we have options
+    if (mcqOptions.length > 0 && !mcqOptions.some(opt => opt.isCorrect)) {
+      mcqOptions[0].isCorrect = true;
+    }
 
     // Validation functions
     const isCategorySelected = () => !!(question.questionCategory?.trim());
     const isQuestionTextEntered = () => !!(question.question?.trim());
     const isLevelSelected = () => !!(question.questionLevel?.trim());
-    const isQuestionComplete = () => isQuestionTextEntered() && isCategorySelected() && isLevelSelected();
+    const isQuestionTypeSelected = () => !!(question.questionType?.trim());
+    
+    // For MCQ validation
+    const areMcqOptionsValid = () => {
+      if (question.questionType !== "Mcq") return true;
+      
+      // Check if at least one option is marked as correct
+      const hasCorrectOption = mcqOptions.some(opt => opt.isCorrect);
+      
+      // Check if all options have text
+      const allOptionsHaveText = mcqOptions.every(opt => opt.answer.trim() !== "");
+      
+      return hasCorrectOption && allOptionsHaveText;
+    };
+    
+    const isQuestionComplete = () => 
+      isQuestionTextEntered() && 
+      isCategorySelected() && 
+      isLevelSelected() && 
+      isQuestionTypeSelected() && 
+      areMcqOptionsValid();
 
     const handleClear = () => {
       if (!isQuestionTextEntered() && !isCategorySelected()) {
@@ -105,6 +176,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
       // Ensure all fields are cleared together
       onUpdate("question", "");
       onUpdate("questionCategory", "");
+      if (question.questionType === "Mcq") {
+        onUpdate("answers", defaultMcqOptions);
+      }
       setShowClearDialog(false);
     };
 
@@ -161,6 +235,31 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
     const cancelAddNext = () => {
       setShowAddNextDialog(false);
     };
+    
+    // Handle MCQ option changes
+    const handleMcqOptionChange = (index: number, value: string) => {
+      const newOptions = [...mcqOptions];
+      newOptions[index].answer = value;
+      onUpdate("answers", newOptions);
+    };
+    
+    // Handle setting correct answer
+    const handleSetCorrectOption = (index: number) => {
+      const newOptions = mcqOptions.map((opt, idx) => ({
+        ...opt,
+        isCorrect: idx === index
+      }));
+      onUpdate("answers", newOptions);
+    };
+    
+    const handleQuestionTypeChange = (type: string) => {
+      onUpdate("questionType", type);
+      
+      // If switching to MCQ, initialize options if needed
+      if (type === "Mcq" && (!question.answers || question.answers.length === 0)) {
+        onUpdate("answers", defaultMcqOptions);
+      }
+    };
 
     const nearLimit = (question.question?.length || 0) > 450;
     const isCompleted = isQuestionComplete();
@@ -196,8 +295,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
             </button>
           </div>
 
-          {/* Category and Level - Must be selected first */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Category, Level and Question Type */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-900">
                 Category <span className="text-red-500">*</span>
@@ -230,6 +329,23 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
                 {levels.map((lvl) => (
                   <option key={lvl} value={lvl}>
                     {lvl}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-900">
+                Question Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={question.questionType || "Input"}
+                onChange={(e) => handleQuestionTypeChange(e.target.value)}
+                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+              >
+                {questionTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type === "Input" ? "Text Question" : "Multiple Choice"}
                   </option>
                 ))}
               </select>
@@ -275,6 +391,48 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
               </div>
             </div>
           </div>
+          
+          {/* MCQ Options - Only show if question type is MCQ */}
+          {question.questionType === "Mcq" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-semibold text-gray-900">
+                  Multiple Choice Options <span className="text-red-500">*</span>
+                </label>
+                <span className="text-xs text-gray-500">Select one correct answer</span>
+              </div>
+              
+              {mcqOptions.map((option, idx) => (
+               <div key={idx} className="flex items-center gap-3">
+                 <input
+                   type="text"
+                   value={option.answer}
+                   onChange={(e) => handleMcqOptionChange(idx, e.target.value)}
+                   placeholder={`Option ${idx + 1}${option.isCorrect ? " (Correct)" : ""}`}
+                   className="w-full border-2 border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                   disabled={!isCategorySelected()}
+                 />
+                 <button 
+                   onClick={() => handleSetCorrectOption(idx)}
+                   className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center transition-colors ${
+                     option.isCorrect 
+                       ? "bg-green-600 text-white" 
+                       : "bg-gray-200 hover:bg-gray-300"
+                   }`}
+                   title={option.isCorrect ? "Correct answer" : "Mark as correct"}
+                 >
+                   {option.isCorrect && <Check size={14} />}
+                 </button>
+               </div>
+             ))}
+              
+              {!areMcqOptionsValid() && isCategorySelected() && (
+                <div className="text-xs text-orange-600">
+                  Please provide text for all options and mark one option as correct.
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-gray-100">

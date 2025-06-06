@@ -11,7 +11,7 @@ export async function fetchAllQuestions(page = 1): Promise<Question[]> {
 }
 
 export async function deleteQuestionById(questionID: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/v1/admin/`, {
+  const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
     method: "DELETE",
     headers: defaultHeaders,
     body: JSON.stringify({ questionID }),
@@ -24,7 +24,8 @@ export async function deleteQuestions(ids: string[]): Promise<void> {
 }
 
 export async function updateQuestionById(question: Question): Promise<Question> {
-  const payload = {
+  // Prepare base payload
+  const payload: any = {
     questionID: question._id,
     question: question.question,
     questionType: question.questionType,
@@ -32,7 +33,16 @@ export async function updateQuestionById(question: Question): Promise<Question> 
     questionLevel: question.questionLevel,
   };
 
-  const res = await fetch(`${API_BASE}/api/v1/admin/`, {
+  // Add answers array for MCQ questions
+  if (question.questionType === "Mcq" && question.answers && question.answers.length > 0) {
+    payload.answers = question.answers.map(a => ({
+      answer: a.answer,
+      isCorrect: a.isCorrect || false,
+      responseCount: a.responseCount || 0
+    }));
+  }
+
+  const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
     method: "PUT",
     headers: defaultHeaders,
     body: JSON.stringify(payload),
@@ -53,12 +63,25 @@ export async function postSurveyQuestions(questions: Question[]): Promise<void> 
   if (newQuestions.length === 0) return;
 
   const payload = {
-    questions: newQuestions.map((q) => ({
-      question: q.question,
-      questionType: q.questionType,
-      questionCategory: q.questionCategory,
-      questionLevel: q.questionLevel,
-    })),
+    questions: newQuestions.map((q) => {
+      const questionData: any = {
+        question: q.question,
+        questionType: q.questionType,
+        questionCategory: q.questionCategory,
+        questionLevel: q.questionLevel,
+      };
+
+      // Add answers array for MCQ questions
+      if (q.questionType === "Mcq" && q.answers && q.answers.length > 0) {
+        questionData.answers = q.answers.map(a => ({
+          answer: a.answer,
+          isCorrect: a.isCorrect || false,
+          responseCount: a.responseCount || 0
+        }));
+      }
+
+      return questionData;
+    }),
   };
 
   const res = await fetch(`${API_BASE}/api/v1/admin/surveyQuestions`, {
@@ -108,6 +131,7 @@ export async function fetchAllQuestionsAndAnswers(): Promise<{
 
   // Create a flat answers array for backward compatibility
   let allAnswers: Answer[] = [];
+  
   transformedQuestions.forEach((q: any) => {
     if (q.answers && Array.isArray(q.answers)) {
       q.answers.forEach((ans: any) => {

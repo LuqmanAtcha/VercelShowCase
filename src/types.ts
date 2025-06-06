@@ -6,13 +6,14 @@ export interface Question {
   questionCategory: string;
   questionLevel: string;
   timesSkipped?: number;
+  timesAnswered: number;
   answers?: Array<{
     _id?: string;
     answer: string;
     responseCount: number;
+    isCorrect: boolean;
   }>;
-  createdAt?: string;
-  updatedAt?: string;
+  timeStamp?: boolean;
 }
 
 export interface Answer {

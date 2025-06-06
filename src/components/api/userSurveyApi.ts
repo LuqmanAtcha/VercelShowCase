@@ -14,6 +14,15 @@ interface RawQuestion {
   questionType: string;
   questionCategory: string;
   questionLevel: string;
+  timesAnswered?: number;
+  timesSkipped?: number;
+  answers?: Array<{
+    _id?: string;
+    answer: string;
+    responseCount?: number;
+    isCorrect?: boolean;
+  }>;
+  timeStamp?: boolean;
 }
 
 export async function fetchAllQuestions(): Promise<Question[]> {
@@ -34,9 +43,18 @@ export async function fetchAllQuestions(): Promise<Question[]> {
     (raw): Question => ({
       _id: raw._id,
       question: raw.question,
-      questionType: raw.questionType,
+      questionType: raw.questionType || "Input", // Default to Input if not specified
       questionCategory: raw.questionCategory,
       questionLevel: raw.questionLevel,
+      timesAnswered: raw.timesAnswered || 0, // Add required property with default
+      timesSkipped: raw.timesSkipped,
+      answers: raw.answers?.map(ans => ({
+        _id: ans._id,
+        answer: ans.answer,
+        responseCount: ans.responseCount || 0, // Default value
+        isCorrect: ans.isCorrect || false // Default value
+      })),
+      timeStamp: raw.timeStamp
     })
   );
 }
