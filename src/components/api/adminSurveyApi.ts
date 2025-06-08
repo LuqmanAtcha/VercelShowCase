@@ -1,31 +1,56 @@
+// src/components/api/adminSurveyApi.ts
 import { API_BASE, defaultHeaders } from "./config";
 import { Question, Answer } from "../../types";
 
 export async function fetchAllQuestionsAdmin(): Promise<Question[]> {
-  const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
-    headers: defaultHeaders,
-  });
-  if (!res.ok) throw new Error("Failed to fetch questions for Admin Page");
-  const { data } = await res.json();
-  
-  return data.map((q: any) => ({
-    questionID: q._id, // Backend uses _id, map to questionID for frontend
-    question: q.question,
-    questionType: q.questionType,
-    questionCategory: q.questionCategory,
-    questionLevel: q.questionLevel,
-    timesAnswered: q.timesAnswered || 0,
-    timesSkipped: q.timesSkipped,
-    answers: q.answers ? q.answers.map((a: any) => ({
-      answerID: a._id, // Backend uses _id, map to answerID for frontend
-      answer: a.answer,
-      isCorrect: a.isCorrect,
-      responseCount: a.responseCount,
-      rank: a.rank,
-      score: a.score
-    })) : [],
-    timeStamp: q.timeStamp
-  }));
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
+      headers: defaultHeaders,
+    });
+    
+    // Handle 404 specifically - this usually means no questions exist
+    if (res.status === 404) {
+      console.log("No questions found (404) - database might be empty");
+      return []; // Return empty array instead of throwing error
+    }
+    
+    if (!res.ok) {
+      throw new Error(`Failed to fetch questions for Admin Page (${res.status}): ${res.statusText}`);
+    }
+    
+    const { data } = await res.json();
+    
+    // Handle case where data is null/undefined but request was successful
+    if (!data || !Array.isArray(data)) {
+      console.log("No questions data returned from server");
+      return [];
+    }
+    
+    return data.map((q: any) => ({
+      questionID: q._id, // Backend uses _id, map to questionID for frontend
+      question: q.question,
+      questionType: q.questionType,
+      questionCategory: q.questionCategory,
+      questionLevel: q.questionLevel,
+      timesAnswered: q.timesAnswered || 0,
+      timesSkipped: q.timesSkipped,
+      answers: q.answers ? q.answers.map((a: any) => ({
+        answerID: a._id, // Backend uses _id, map to answerID for frontend
+        answer: a.answer,
+        isCorrect: a.isCorrect,
+        responseCount: a.responseCount,
+        rank: a.rank,
+        score: a.score
+      })) : [],
+      timeStamp: q.timeStamp
+    }));
+  } catch (error: any) {
+    // If it's a network error or fetch failed, it might be because there are no questions
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error("Network error: Unable to connect to the server. Please check your connection.");
+    }
+    throw error;
+  }
 }
 
 export async function deleteQuestionByIdAdmin(
@@ -43,7 +68,7 @@ export async function deleteQuestionByIdAdmin(
   
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error("Failed to delete question");
+    throw new Error(`Failed to delete question (${res.status}): ${errorText}`);
   }
  }
  
@@ -62,7 +87,7 @@ export async function deleteQuestionByIdAdmin(
   
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error("Failed to delete questions");
+    throw new Error(`Failed to delete questions (${res.status}): ${errorText}`);
   }
  }
 
@@ -159,87 +184,110 @@ export async function fetchAllQuestionsAndAnswersAdmin(): Promise<{
   questions: Question[];
   answers: Answer[];
 }> {
-  const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
-    headers: defaultHeaders,
-  });
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
+      headers: defaultHeaders,
+    });
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch questions");
-  }
-
-  const response = await res.json();
-  const questions: Question[] = response.data || [];
-
-  const transformedQuestions = questions.map((q) => ({
-    questionID: q.questionID, // Backend uses _id, map to questionID
-    question: q.question,
-    questionType: q.questionType,
-    questionCategory: q.questionCategory,
-    questionLevel: q.questionLevel,
-    timesAnswered: q.timesAnswered || 0,
-    timesSkipped: q.timesSkipped,
-    answers: q.answers ? q.answers.map((ans: any) => ({
-      answerID: ans._id, // Backend uses _id, map to answerID
-      answer: ans.answer || "",
-      responseCount: ans.responseCount || 0,
-      isCorrect: ans.isCorrect || false
-    })) : [],
-    timeStamp: q.timeStamp,
-    createdAt: q.createdAt
-  }));
-
-  let allAnswers: Answer[] = [];
-
-  transformedQuestions.forEach((q: any) => {
-    if (q.answers && Array.isArray(q.answers)) {
-      q.answers.forEach((ans: any) => {
-        for (let i = 0; i < (ans.responseCount || 1); i++) {
-          allAnswers.push({
-            answerID: ans.answerID,
-            questionId: q.questionID,
-            answer: ans.answer || "",
-            createdAt: q.createdAt,
-          });
-        }
-      });
+    // Handle 404 - no questions exist
+    if (res.status === 404) {
+      return { questions: [], answers: [] };
     }
-  });
 
-  return { questions: transformedQuestions, answers: allAnswers };
+    if (!res.ok) {
+      throw new Error(`Failed to fetch questions (${res.status}): ${res.statusText}`);
+    }
+
+    const response = await res.json();
+    const questions: Question[] = response.data || [];
+
+    const transformedQuestions = questions.map((q) => ({
+      questionID: q.questionID, // Backend uses _id, map to questionID
+      question: q.question,
+      questionType: q.questionType,
+      questionCategory: q.questionCategory,
+      questionLevel: q.questionLevel,
+      timesAnswered: q.timesAnswered || 0,
+      timesSkipped: q.timesSkipped,
+      answers: q.answers ? q.answers.map((ans: any) => ({
+        answerID: ans._id, // Backend uses _id, map to answerID
+        answer: ans.answer || "",
+        responseCount: ans.responseCount || 0,
+        isCorrect: ans.isCorrect || false
+      })) : [],
+      timeStamp: q.timeStamp,
+      createdAt: q.createdAt
+    }));
+
+    let allAnswers: Answer[] = [];
+
+    transformedQuestions.forEach((q: any) => {
+      if (q.answers && Array.isArray(q.answers)) {
+        q.answers.forEach((ans: any) => {
+          for (let i = 0; i < (ans.responseCount || 1); i++) {
+            allAnswers.push({
+              answerID: ans.answerID,
+              questionId: q.questionID,
+              answer: ans.answer || "",
+              createdAt: q.createdAt,
+            });
+          }
+        });
+      }
+    });
+
+    return { questions: transformedQuestions, answers: allAnswers };
+  } catch (error: any) {
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error("Network error: Unable to connect to the server");
+    }
+    throw error;
+  }
 }
 
 export async function fetchAnswersByQuestionId(
   questionId: string
 ): Promise<Answer[]> {
-  const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
-    headers: defaultHeaders,
-  });
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
+      headers: defaultHeaders,
+    });
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch answers for question ${questionId}`);
-  }
-
-  const response = await res.json();
-  const questions = response.data || [];
-
-  const question = questions.find((q: any) => q._id === questionId);
-
-  if (!question || !question.answers) {
-    return [];
-  }
-
-  let answers: Answer[] = [];
-  question.answers.forEach((ans: any) => {
-    const responseCount = ans.responseCount || 1;
-    for (let i = 0; i < responseCount; i++) {
-      answers.push({
-        answerID: ans._id,
-        questionId: questionId,
-        answer: ans.answer || "",
-        createdAt: question.createdAt,
-      });
+    if (res.status === 404) {
+      return [];
     }
-  });
 
-  return answers;
+    if (!res.ok) {
+      throw new Error(`Failed to fetch answers for question ${questionId} (${res.status}): ${res.statusText}`);
+    }
+
+    const response = await res.json();
+    const questions = response.data || [];
+
+    const question = questions.find((q: any) => q._id === questionId);
+
+    if (!question || !question.answers) {
+      return [];
+    }
+
+    let answers: Answer[] = [];
+    question.answers.forEach((ans: any) => {
+      const responseCount = ans.responseCount || 1;
+      for (let i = 0; i < responseCount; i++) {
+        answers.push({
+          answerID: ans._id,
+          questionId: questionId,
+          answer: ans.answer || "",
+          createdAt: question.createdAt,
+        });
+      }
+    });
+
+    return answers;
+  } catch (error: any) {
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error("Network error: Unable to connect to the server");
+    }
+    throw error;
+  }
 }

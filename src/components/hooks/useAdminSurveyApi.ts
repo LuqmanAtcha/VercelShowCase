@@ -1,3 +1,4 @@
+// src/components/hooks/useAdminSurveyApi.ts
 import { useState, useCallback, useRef } from "react";
 import * as api from "../api/adminSurveyApi";
 import { Question } from "../../types";
@@ -8,6 +9,7 @@ export function useAdminSurveyApi() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
+  const [isEmpty, setIsEmpty] = useState(false); // New state to track if database is empty
   
   const cache = useRef<{
     questions: Question[] | null;
@@ -24,22 +26,36 @@ export function useAdminSurveyApi() {
         cache.current.questions && 
         (now - cache.current.timestamp) < CACHE_DURATION) {
       setQuestions(cache.current.questions);
+      setIsEmpty(cache.current.questions.length === 0);
       return;
     }
 
     setLoading(true);
     setError("");
+    setIsEmpty(false);
     
     try {
       const data = await api.fetchAllQuestionsAdmin();
       setQuestions(data);
+      setIsEmpty(data.length === 0);
       
       cache.current = {
         questions: data,
         timestamp: now
       };
     } catch (e: any) {
-      setError(e.message);
+      console.error("Error fetching questions:", e);
+      
+      // Check if it's a 404 or network error indicating no questions exist
+      if (e.message.includes("404") || 
+          e.message.includes("Failed to fetch questions") ||
+          e.message.includes("Network error")) {
+        setIsEmpty(true);
+        setQuestions([]);
+        setError("No questions found in the database. Please add some questions to get started.");
+      } else {
+        setError(e.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -53,6 +69,7 @@ export function useAdminSurveyApi() {
         await api.postSurveyQuestions(newQuestions);
         cache.current.questions = null;
         await fetchQuestions(true);
+        setIsEmpty(false); // Reset empty state after successful creation
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -104,6 +121,7 @@ export function useAdminSurveyApi() {
     questions,
     isLoading,
     error,
+    isEmpty, // Export the isEmpty state
     fetchQuestions,
     createQuestions,
     updateQuestions,
