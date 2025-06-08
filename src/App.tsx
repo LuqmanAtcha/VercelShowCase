@@ -17,7 +17,30 @@ import ResponsesPage from "./components/analytics/ResponsesPage";
 import { fetchAllQuestionsAndAnswersAdmin } from "./components/api/adminSurveyApi";
 
 const ADMIN_PASSWORD = "AdminForm123";
+// Debug all fetch requests
+const originalFetch = window.fetch;
+let requestCount = 0;
 
+window.fetch = function(...args) {
+  requestCount++;
+  const requestId = requestCount;
+  const url = args[0];
+  
+  console.log(`🌐 REQUEST #${requestId} START:`, url);
+  console.trace('👆 Called from:'); // Shows you the call stack
+  
+  const start = Date.now();
+  
+  return originalFetch.apply(this, args).then(response => {
+    const duration = Date.now() - start;
+    console.log(`✅ REQUEST #${requestId} DONE (${duration}ms):`, url, `Status: ${response.status}`);
+    return response;
+  }).catch(error => {
+    const duration = Date.now() - start;
+    console.log(`❌ REQUEST #${requestId} FAILED (${duration}ms):`, url, error);
+    throw error;
+  });
+};
 const App: React.FC = () => (
   <Router>
     <Routes>
