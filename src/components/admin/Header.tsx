@@ -77,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : "bg-white text-purple-700 border border-purple-200 hover:bg-purple-50"
                 }`}
             >
-              <span className="text-lg">➕</span> Create
+              <span className="text-lg">➕</span> Add
             </button>
             <button
               onClick={onSwitchToEdit}

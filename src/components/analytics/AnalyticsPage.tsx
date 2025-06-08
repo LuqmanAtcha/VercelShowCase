@@ -29,14 +29,14 @@ ChartJS.register(
 );
 
 interface AnalyticsPageProps {
-  fetchAllQuestionsAndAnswers: () => Promise<{
+  fetchAllQuestionsAndAnswersAdmin: () => Promise<{
     questions: Question[];
     answers: Answer[];
   }>;
 }
 
 const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
-  fetchAllQuestionsAndAnswers,
+  fetchAllQuestionsAndAnswersAdmin,
 }) => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -50,7 +50,7 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 
     try {
       const { questions: fetchedQuestions } =
-        await fetchAllQuestionsAndAnswers();
+        await fetchAllQuestionsAndAnswersAdmin();
       setQuestions(fetchedQuestions);
     } catch (e: any) {
       setErr(e.message);
@@ -72,7 +72,7 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 
       try {
         const { questions: fetchedQuestions } =
-          await fetchAllQuestionsAndAnswers();
+          await fetchAllQuestionsAndAnswersAdmin();
         setQuestions(fetchedQuestions);
       } catch (e: any) {
         setErr(e.message);
@@ -82,7 +82,7 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     };
 
     fetchData();
-  }, [fetchAllQuestionsAndAnswers, navigate]);
+  }, [fetchAllQuestionsAndAnswersAdmin, navigate]);
 
   // Use the custom hook to process data
   const analyticsData = useAnalyticsData(questions);

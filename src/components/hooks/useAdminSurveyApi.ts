@@ -34,7 +34,7 @@ export function useAdminSurveyApi() {
     setError("");
     
     try {
-      const data = await api.fetchAllQuestions();
+      const data = await api.fetchAllQuestionsAdmin();
       setQuestions(data);
       
       // Update cache
@@ -74,20 +74,9 @@ export function useAdminSurveyApi() {
       setLoading(true);
       setError("");
       try {
-        // Batch operations for better performance
-        const existingQuestions = questionsToUpdate.filter(q => q._id && q._id !== "");
-        const newQuestions = questionsToUpdate.filter(q => !q._id || q._id === "");
+       
+        await api.updateSurveyQuestionsBatch(questionsToUpdate);
         
-        // Run operations in parallel when possible
-        const updatePromises = existingQuestions.map(q => api.updateQuestionById(q));
-        await Promise.all(updatePromises);
-        
-        // Create new questions
-        if (newQuestions.length > 0) {
-          await api.postSurveyQuestions(newQuestions);
-        }
-        
-        // Clear cache to force fresh fetch
         cache.current.questions = null;
         await fetchQuestions(true);
       } catch (e: any) {
@@ -98,6 +87,7 @@ export function useAdminSurveyApi() {
     },
     [fetchQuestions]
   );
+  
 
   // Delete specific questions
   const deleteQuestions = useCallback(
@@ -105,10 +95,10 @@ export function useAdminSurveyApi() {
       setLoading(true);
       setError("");
       try {
-        const ids = toDelete.map((q) => q._id).filter(Boolean) as string[];
+        const ids = toDelete.map((q) => q.questionID).filter(Boolean) as string[]; // Changed from _id to questionID
         
         // Delete in parallel for better performance
-        const deletePromises = ids.map(id => api.deleteQuestionById(id));
+        const deletePromises = ids.map(id => api.deleteQuestionByIdAdmin(id));
         await Promise.all(deletePromises);
         
         // Clear cache to force fresh fetch

@@ -33,11 +33,13 @@ interface ConfirmationDialogProps {
 interface McqOption {
   answer: string;
   isCorrect: boolean;
+  answerID?: string;
 }
 
 // For typing any answer format
 interface AnyAnswer {
   answer: string;
+  answerID?: string;
   [key: string]: any;
 }
 
@@ -120,14 +122,16 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
             // It's already in the format we need
             return {
               answer: answer.answer || "",
-              isCorrect: answer.isCorrect || false
+              isCorrect: answer.isCorrect || false,
+              answerID: answer.answerID // Include answerID for existing answers
             };
           } else {
             // It's a standard answer, convert to MCQ format
             // For existing questions, assume first answer is correct if not specified
             return {
               answer: answer.answer || "",
-              isCorrect: false // Default to false, we'll set one to true below
+              isCorrect: false, // Default to false, we'll set one to true below
+              answerID: answer.answerID
             };
           }
         })

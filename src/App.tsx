@@ -14,7 +14,7 @@ import AnalyticsPage from "./components/analytics/AnalyticsPage";
 import SurveyPage from "./components/admin/SurveyPage";
 import QuestionDetailPage from "./components/admin/QuestionDetailsPage";
 import ResponsesPage from "./components/analytics/ResponsesPage";
-import { fetchAllQuestionsAndAnswers } from "./components/api/adminSurveyApi";
+import { fetchAllQuestionsAndAnswersAdmin } from "./components/api/adminSurveyApi";
 
 const ADMIN_PASSWORD = "AdminForm123";
 
@@ -25,7 +25,7 @@ const App: React.FC = () => (
         path="/analytics"
         element={
           <AnalyticsPage
-            fetchAllQuestionsAndAnswers={fetchAllQuestionsAndAnswers}
+            fetchAllQuestionsAndAnswersAdmin={fetchAllQuestionsAndAnswersAdmin}
           />
         }
       />

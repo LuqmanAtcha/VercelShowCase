@@ -52,7 +52,7 @@ const SurveyPage: React.FC = () => {
       // Initialize with one empty question per level
       LEVELS.forEach((lvl) => {
         emptyMap[lvl] = [{
-          _id: "",
+          questionID: "", // Changed from _id
           question: "",
           questionType: "Input",
           questionCategory: "",
@@ -86,7 +86,7 @@ const SurveyPage: React.FC = () => {
     LEVELS.forEach((lvl) => {
       if (map[lvl].length === 0) {
         map[lvl].push({
-          _id: "",
+          questionID: "", // Changed from _id
           question: "",
           questionType: "Input",
           questionCategory: "",
@@ -112,7 +112,7 @@ const SurveyPage: React.FC = () => {
     const list = questionsByLevel[level];
     const lastCat = list[list.length - 1]?.questionCategory || "";
     const newQ: Question = {
-      _id: "",
+      questionID: "", // Changed from _id
       question: "",
       questionType: "Input",
       questionCategory: lastCat,
@@ -143,8 +143,8 @@ const SurveyPage: React.FC = () => {
    
     const toDelete = list[currentIndex];
    
-    // If it's an existing question (has _id), delete from backend
-    if (toDelete._id) {
+    // If it's an existing question (has questionID), delete from backend
+    if (toDelete.questionID) {
       await deleteQuestions([toDelete]);
     }
    
@@ -161,7 +161,7 @@ const SurveyPage: React.FC = () => {
  
   const confirmDeleteAllQuestions = async () => {
     const list = questionsByLevel[levelToDelete];
-    const toDelete = list.filter((q) => q._id);
+    const toDelete = list.filter((q) => q.questionID);
    
     if (toDelete.length) {
       await deleteQuestions(toDelete);
@@ -169,7 +169,7 @@ const SurveyPage: React.FC = () => {
    
     updateTabQuestions(levelToDelete, [
       {
-        _id: "",
+        questionID: "", // Changed from _id
         question: "",
         questionType: "Input",
         questionCategory: "",
@@ -242,7 +242,7 @@ const SurveyPage: React.FC = () => {
       const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
       LEVELS.forEach((lvl) => {
         emptyMap[lvl] = [{
-          _id: "",
+          questionID: "", // Changed from _id
           question: "",
           questionType: "Input",
           questionCategory: "",
