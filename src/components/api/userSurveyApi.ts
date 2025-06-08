@@ -1,6 +1,6 @@
 // Fixed userSurveyApi.ts - Proper ID handling for user survey operations
 import { API_BASE, defaultHeaders } from "./config";
-import { Question } from "../../types";
+import { Question } from "../../types/types";
 
 interface QuestionsResponse {
   statusCode: number;
@@ -29,11 +29,11 @@ interface RawQuestion {
 
 export async function fetchAllQuestions(): Promise<Question[]> {
   console.log("🌐 Fetching all questions from user API...");
-  
+
   const res = await fetch(`${API_BASE}/api/v1/survey/`, {
     headers: defaultHeaders,
   });
-  
+
   if (!res.ok) {
     throw new Error(`Network error: ${res.status}`);
   }
@@ -56,21 +56,24 @@ export async function fetchAllQuestions(): Promise<Question[]> {
       questionLevel: raw.questionLevel,
       timesAnswered: raw.timesAnswered || 0,
       timesSkipped: raw.timesSkipped || 0,
-      answers: raw.answers?.map(ans => ({
+      answers: raw.answers?.map((ans) => ({
         answerID: ans._id, // Map _id to answerID for frontend consistency
         answer: ans.answer,
         responseCount: ans.responseCount || 0,
-        isCorrect: ans.isCorrect || false
+        isCorrect: ans.isCorrect || false,
       })),
       timeStamp: raw.timeStamp,
-      createdAt: raw.createdAt
+      createdAt: raw.createdAt,
     })
   );
 
-  console.log("✅ Transformed questions:", transformedQuestions.map(q => ({ 
-    questionID: q.questionID, 
-    question: q.question.substring(0, 30) + '...' 
-  })));
+  console.log(
+    "✅ Transformed questions:",
+    transformedQuestions.map((q) => ({
+      questionID: q.questionID,
+      question: q.question.substring(0, 30) + "...",
+    }))
+  );
 
   return transformedQuestions;
 }
@@ -79,10 +82,10 @@ export async function fetchQuestionsByLevel(
   level: string
 ): Promise<Question[]> {
   console.log("🎯 Fetching questions for level:", level);
-  
+
   const all = await fetchAllQuestions();
   const filtered = all.filter((q) => q.questionLevel === level);
-  
+
   console.log(`📊 Found ${filtered.length} questions for ${level} level`);
   return filtered;
 }
@@ -92,12 +95,12 @@ export async function submitAllAnswers(
   answers: { questionID: string; answerText: string }[]
 ): Promise<void> {
   console.log("📤 Submitting answers:", answers.length);
-  
+
   // Transform to the correct format expected by the backend
   // Backend expects _id format, so we need to map questionID back to _id
   const payload = {
-    questions: answers.map(a => ({ _id: a.questionID })), // Use _id format for backend
-    answers: answers.map(a => ({ answer: a.answerText }))
+    questions: answers.map((a) => ({ _id: a.questionID })), // Use _id format for backend
+    answers: answers.map((a) => ({ answer: a.answerText })),
   };
 
   console.log("🚀 Submission payload:", JSON.stringify(payload, null, 2));
@@ -107,11 +110,11 @@ export async function submitAllAnswers(
     headers: defaultHeaders,
     body: JSON.stringify(payload),
   });
-  
+
   if (!res.ok) {
     const text = await res.text();
     console.error("❌ Submission failed:", res.status, text);
-    
+
     let message;
     try {
       const json = JSON.parse(text);
@@ -121,7 +124,7 @@ export async function submitAllAnswers(
     }
     throw new Error(message);
   }
-  
+
   console.log("✅ Answers submitted successfully");
 }
 
@@ -131,10 +134,10 @@ export async function submitSingleAnswer(
   answer: string
 ): Promise<void> {
   console.log("📤 Submitting single answer for question:", questionID);
-  
+
   const payload = {
     questions: [{ _id: questionID }], // Use _id format for backend
-    answers: [{ answer: answer }]
+    answers: [{ answer: answer }],
   };
 
   console.log("🚀 Single answer payload:", JSON.stringify(payload, null, 2));
@@ -144,11 +147,11 @@ export async function submitSingleAnswer(
     headers: defaultHeaders,
     body: JSON.stringify(payload),
   });
-  
+
   if (!res.ok) {
     const text = await res.text();
     console.error("❌ Single answer submission failed:", res.status, text);
-    
+
     let message;
     try {
       const json = JSON.parse(text);
@@ -158,7 +161,7 @@ export async function submitSingleAnswer(
     }
     throw new Error(message);
   }
-  
+
   console.log("✅ Single answer submitted successfully");
 }
 
