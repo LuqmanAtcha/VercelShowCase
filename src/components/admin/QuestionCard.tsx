@@ -200,13 +200,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
       setShowMoveNextDialog(false);
     };
 
-    const handleAddNextClick = () => {
-      if ((isQuestionTextEntered() || isCategorySelected()) && !isQuestionComplete()) {
-        setShowAddNextDialog(true);
-      } else {
-        onAddNext();
-      }
-    };
+    
 
     const confirmAddNext = () => {
       setShowAddNextDialog(false);
@@ -443,13 +437,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
                 Next
               </button>
 
-              <button
-                onClick={handleAddNextClick}
-                className="flex items-center space-x-2 px-4 py-2 text-sm font-medium bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                <Plus size={16} />
-                <span>Add Next</span>
-              </button>
+              
             </div>
           </div>
         </div>
