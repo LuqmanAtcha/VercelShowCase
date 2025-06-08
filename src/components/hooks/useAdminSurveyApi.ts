@@ -1,7 +1,7 @@
 // src/components/hooks/useAdminSurveyApi.ts
 import { useState, useCallback, useRef } from "react";
 import * as api from "../api/adminSurveyApi";
-import { Question } from "../../types";
+import { Question } from "../../types/types";
 
 const CACHE_DURATION = 30 * 1000;
 
@@ -10,21 +10,23 @@ export function useAdminSurveyApi() {
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [isEmpty, setIsEmpty] = useState(false); // New state to track if database is empty
-  
+
   const cache = useRef<{
     questions: Question[] | null;
     timestamp: number;
   }>({
     questions: null,
-    timestamp: 0
+    timestamp: 0,
   });
 
   const fetchQuestions = useCallback(async (forceRefresh = false) => {
     const now = Date.now();
-    
-    if (!forceRefresh && 
-        cache.current.questions && 
-        (now - cache.current.timestamp) < CACHE_DURATION) {
+
+    if (
+      !forceRefresh &&
+      cache.current.questions &&
+      now - cache.current.timestamp < CACHE_DURATION
+    ) {
       setQuestions(cache.current.questions);
       setIsEmpty(cache.current.questions.length === 0);
       return;
@@ -33,26 +35,30 @@ export function useAdminSurveyApi() {
     setLoading(true);
     setError("");
     setIsEmpty(false);
-    
+
     try {
       const data = await api.fetchAllQuestionsAdmin();
       setQuestions(data);
       setIsEmpty(data.length === 0);
-      
+
       cache.current = {
         questions: data,
-        timestamp: now
+        timestamp: now,
       };
     } catch (e: any) {
       console.error("Error fetching questions:", e);
-      
+
       // Check if it's a 404 or network error indicating no questions exist
-      if (e.message.includes("404") || 
-          e.message.includes("Failed to fetch questions") ||
-          e.message.includes("Network error")) {
+      if (
+        e.message.includes("404") ||
+        e.message.includes("Failed to fetch questions") ||
+        e.message.includes("Network error")
+      ) {
         setIsEmpty(true);
         setQuestions([]);
-        setError("No questions found in the database. Please add some questions to get started.");
+        setError(
+          "No questions found in the database. Please add some questions to get started."
+        );
       } else {
         setError(e.message);
       }
@@ -101,11 +107,13 @@ export function useAdminSurveyApi() {
       setLoading(true);
       setError("");
       try {
-        const ids = toDelete.map((q) => q.questionID).filter(Boolean) as string[];
-        
-        const deletePromises = ids.map(id => api.deleteQuestionByIdAdmin(id));
+        const ids = toDelete
+          .map((q) => q.questionID)
+          .filter(Boolean) as string[];
+
+        const deletePromises = ids.map((id) => api.deleteQuestionByIdAdmin(id));
         await Promise.all(deletePromises);
-        
+
         cache.current.questions = null;
         await fetchQuestions(true);
       } catch (e: any) {
