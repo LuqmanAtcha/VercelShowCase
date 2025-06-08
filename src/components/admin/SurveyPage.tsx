@@ -1,7 +1,9 @@
+// src/components/admin/SurveyPage.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminSurveyApi } from "../hooks/useAdminSurveyApi";
 import SurveyLayout from "./SurveyLayout";
+import AdminEmptyState from "./AdminEmptyState";
 import { Question } from "../../types";
  
 const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
@@ -13,6 +15,7 @@ const SurveyPage: React.FC = () => {
     questions,
     isLoading,
     error,
+    isEmpty,
     setError,
     fetchQuestions,
     createQuestions,
@@ -40,7 +43,7 @@ const SurveyPage: React.FC = () => {
       return;
     }
   }, [navigate]);
- 
+ // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!showUIImmediately) {
       const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
@@ -61,10 +64,15 @@ const SurveyPage: React.FC = () => {
     }
     
     fetchQuestions();
-  }, [fetchQuestions]);
+  }, [fetchQuestions, showUIImmediately]);
  
   useEffect(() => {
-    if (!showUIImmediately || questions.length === 0) return;
+    if (!showUIImmediately) return;
+
+    // If we have an error and it indicates empty database, don't process questions
+    if (isEmpty && questions.length === 0) {
+      return;
+    }
 
     const map: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
    
@@ -74,20 +82,24 @@ const SurveyPage: React.FC = () => {
       }
     });
 
-    LEVELS.forEach((lvl) => {
-      if (map[lvl].length === 0) {
-        map[lvl].push({
-          questionID: "",
-          question: "",
-          questionType: "Input",
-          questionCategory: "",
-          questionLevel: lvl,
-          timesAnswered: 0
-        });
-      }
-    });
+    // Only add empty questions if we actually have some questions or if we're in create mode
+    if (questions.length > 0 || mode === "create") {
+      LEVELS.forEach((lvl) => {
+        if (map[lvl].length === 0) {
+          map[lvl].push({
+            questionID: "",
+            question: "",
+            questionType: "Input",
+            questionCategory: "",
+            questionLevel: lvl,
+            timesAnswered: 0
+          });
+        }
+      });
+    }
+    
     setQuestionsByLevel(map);
-  }, [questions, showUIImmediately]);
+  }, [questions, showUIImmediately, isEmpty, mode]);
  
   const updateTabQuestions = (level: Level, list: Question[]) => {
     setQuestionsByLevel((prev) => ({ ...prev, [level]: list }));
@@ -99,6 +111,11 @@ const SurveyPage: React.FC = () => {
   };
  
   const onAddQuestion = (level: Level) => {
+    console.log("onAddQuestion called with level:", level);
+    if (mode === "edit") {
+      setMode("create");
+    }
+    
     const list = questionsByLevel[level];
     const lastCat = list[list.length - 1]?.questionCategory || "";
     const newQ: Question = {
@@ -112,20 +129,26 @@ const SurveyPage: React.FC = () => {
     updateTabQuestions(level, [...list, newQ]);
     setCurrentTab(level);
     setCurrentIndex(list.length);
+    
+    // Clear any "no questions" error when user starts adding
+    if (isEmpty) {
+      setError("");
+    }
+    
   };
  
-  const onPrevQuestion = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
+  // const onPrevQuestion = () => {
+  //   if (currentIndex > 0) {
+  //     setCurrentIndex(currentIndex - 1);
+  //   }
+  // };
  
-  const onNextQuestion = () => {
-    const list = questionsByLevel[currentTab];
-    if (currentIndex < list.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
+  // const onNextQuestion = () => {
+  //   const list = questionsByLevel[currentTab];
+  //   if (currentIndex < list.length - 1) {
+  //     setCurrentIndex(currentIndex + 1);
+  //   }
+  // };
  
   const onDeleteCurrent = async () => {
     const list = questionsByLevel[currentTab];
@@ -257,6 +280,7 @@ const SurveyPage: React.FC = () => {
       });
       setQuestionsByLevel(emptyMap);
       setCurrentIndex(0);
+      setError(""); // Clear any errors when switching to create mode
     }
   };
  
@@ -273,6 +297,64 @@ const SurveyPage: React.FC = () => {
           <p className="text-purple-700 text-lg font-medium">
             Loading Survey Builder...
           </p>
+        </div>
+      </div>
+    );
+  }
+
+// Only show empty state if database is truly empty AND no questions have been added locally
+const hasAnyQuestions = Object.values(questionsByLevel).some(levelQuestions => 
+  levelQuestions && levelQuestions.length > 0
+);
+
+if ((isEmpty || (error && error.includes("No questions found"))) && !hasAnyQuestions) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+        {/* Header */}
+        <header className="sticky top-0 z-50 w-full bg-white bg-opacity-90 backdrop-blur border-b shadow-lg">
+          <div className="max-w-7xl mx-auto px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-4">
+              <div className="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center shadow text-white text-lg font-bold">
+                SF
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Survey Form
+                </h1>
+                <span className="text-xs text-gray-400 tracking-wide">
+                  Admin Panel
+                </span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/analytics")}
+                className="flex items-center gap-2 px-4 py-2 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 transition font-semibold"
+                disabled={isEmpty}
+              >
+                📊 Analytics
+              </button>
+              <button
+                onClick={() => navigate("/")}
+                className="px-4 py-2 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition font-semibold"
+              >
+                🚪 Logout
+              </button>
+            </div>
+          </div>
+          <div className="w-full h-[2px] bg-gradient-to-r from-purple-200 via-gray-100 to-blue-200 opacity-70" />
+        </header>
+
+        {/* Main Content */}
+        <div className="flex flex-col xl:flex-row px-16 py-8 justify-center items-center min-h-[calc(100vh-80px)]">
+          <div className="w-full max-w-4xl">
+            <AdminEmptyState 
+              onAddQuestion={onAddQuestion}
+              isEmpty={isEmpty}
+              error={error.includes("Network error") || error.includes("Unable to connect") ? error : undefined}
+            />
+          </div>
         </div>
       </div>
     );
