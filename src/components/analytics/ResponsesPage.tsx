@@ -387,7 +387,7 @@ const ResponsesPage: React.FC = () => {
                     
                     return (
                       <tr
-                        key={q.questionID}
+                        key={q.questionID || `response-row-${index}`}
                         className={`border-b hover:bg-gray-50 ${
                           recentAnsweredIds.has(q.questionID) ? 'bg-yellow-100 font-semibold' : 
                           index % 2 === 0 ? 'bg-white' : 'bg-purple-25'
@@ -396,7 +396,10 @@ const ResponsesPage: React.FC = () => {
                         <td className="px-3 py-2 text-gray-600">{index + 1}</td>
                         <td
                           className="px-3 py-2 text-purple-600 underline cursor-pointer hover:text-purple-800 max-w-xs"
-                          onClick={() => navigate(`/analytics/question/${q.questionID}`)}
+                          onClick={() => {
+                            console.log("🎯 Navigating to question:", q.questionID);
+                            navigate(`/analytics/question/${q.questionID}`);
+                          }}
                           title={q.question}
                         >
                           <div className="truncate">
