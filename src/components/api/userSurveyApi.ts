@@ -9,7 +9,7 @@ interface QuestionsResponse {
 }
 
 interface RawQuestion {
-  questionID: string;
+  _id: string; // Backend uses _id, not questionID
   question: string;
   questionType: string;
   questionCategory: string;
@@ -17,7 +17,7 @@ interface RawQuestion {
   timesAnswered?: number;
   timesSkipped?: number;
   answers?: Array<{
-    answerID?: string;
+    _id?: string; // Backend uses _id for answers too
     answer: string;
     responseCount?: number;
     isCorrect?: boolean;
@@ -39,9 +39,10 @@ export async function fetchAllQuestions(): Promise<Question[]> {
     throw new Error(`Server error: ${body.message}`);
   }
 
+  // FIX: Map _id to questionID correctly
   return body.data.map(
     (raw): Question => ({
-      questionID: raw.questionID,
+      questionID: raw._id, // Map _id to questionID
       question: raw.question,
       questionType: raw.questionType || "Input",
       questionCategory: raw.questionCategory,
@@ -49,7 +50,7 @@ export async function fetchAllQuestions(): Promise<Question[]> {
       timesAnswered: raw.timesAnswered || 0,
       timesSkipped: raw.timesSkipped,
       answers: raw.answers?.map(ans => ({
-        answerID: ans.answerID,
+        answerID: ans._id, // Map _id to answerID
         answer: ans.answer,
         responseCount: ans.responseCount || 0,
         isCorrect: ans.isCorrect || false
@@ -66,16 +67,17 @@ export async function fetchQuestionsByLevel(
   return all.filter((q) => q.questionLevel === level);
 }
 
+// FIX: Update to use the correct submission format
 export async function submitAllAnswers(
   answers: { questionID: string; answerText: string }[]
 ): Promise<void> {
-  const questions = answers.map(a => ({ questionID: a.questionID }));
-  const answerTexts = answers.map(a => ({ answer: a.answerText }));
-  
+  // Transform to the correct format expected by the backend
   const payload = {
-    questions: questions,
-    answers: answerTexts
+    questions: answers.map(a => ({ _id: a.questionID })), // Use _id instead of questionID
+    answers: answers.map(a => ({ answer: a.answerText }))
   };
+
+  console.log("Submitting payload:", JSON.stringify(payload, null, 2));
 
   const res = await fetch(`${API_BASE}/api/v1/survey/`, {
     method: "PUT",
@@ -96,13 +98,14 @@ export async function submitAllAnswers(
   }
 }
 
+// FIX: Update single answer submission format
 export async function submitSingleAnswer(
   questionID: string,
   answer: string
 ): Promise<void> {
   const payload = {
-    questionID: questionID,
-    answer: answer
+    questions: [{ _id: questionID }], // Use _id format
+    answers: [{ answer: answer }]
   };
 
   const res = await fetch(`${API_BASE}/api/v1/survey/`, {
