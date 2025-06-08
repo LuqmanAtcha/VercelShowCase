@@ -1,4 +1,4 @@
-// src/components/api/adminSurveyApi.ts
+// Fixed adminSurveyApi.ts - Proper ID handling between backend and frontend
 import { API_BASE, defaultHeaders } from "./config";
 import { Question, Answer } from "../../types";
 
@@ -27,22 +27,23 @@ export async function fetchAllQuestionsAdmin(): Promise<Question[]> {
     }
     
     return data.map((q: any) => ({
-      questionID: q._id, // Backend uses _id, map to questionID for frontend
+      questionID: q._id || q.questionID, // Handle both _id and questionID from backend
       question: q.question,
       questionType: q.questionType,
       questionCategory: q.questionCategory,
       questionLevel: q.questionLevel,
       timesAnswered: q.timesAnswered || 0,
-      timesSkipped: q.timesSkipped,
+      timesSkipped: q.timesSkipped || 0,
       answers: q.answers ? q.answers.map((a: any) => ({
-        answerID: a._id, // Backend uses _id, map to answerID for frontend
+        answerID: a._id || a.answerID, // Handle both _id and answerID from backend
         answer: a.answer,
         isCorrect: a.isCorrect,
         responseCount: a.responseCount,
         rank: a.rank,
         score: a.score
       })) : [],
-      timeStamp: q.timeStamp
+      timeStamp: q.timeStamp,
+      createdAt: q.createdAt
     }));
   } catch (error: any) {
     // If it's a network error or fetch failed, it might be because there are no questions
@@ -91,21 +92,21 @@ export async function deleteQuestionByIdAdmin(
   }
  }
 
-export async function updateSurveyQuestionsBatch(
+ export async function updateSurveyQuestionsBatch(
   questions: Question[]
 ): Promise<void> {
   // Use the exact format that works in Postman
   const payload = {
     questions: questions.map((q) => {
-      const questionData = {
+      const questionData: any = {
         questionID: q.questionID, // This should be included!
         question: q.question,
         questionType: q.questionType,
         questionCategory: q.questionCategory,
         questionLevel: q.questionLevel,
-        answers: [] as any[],
       };
 
+      // Only include answers array for MCQ questions
       if (q.questionType === "Mcq" && q.answers && q.answers.length > 0) {
         questionData.answers = q.answers.map((a) => ({
           answer: a.answer,
@@ -113,6 +114,7 @@ export async function updateSurveyQuestionsBatch(
           answerID: a.answerID, // This should be included!
         }));
       }
+      // For Input type questions, don't include answers array at all
 
       return questionData;
     }),
@@ -122,7 +124,8 @@ export async function updateSurveyQuestionsBatch(
   console.log("🔍 Input questions received:", questions.map(q => ({ 
     questionID: q.questionID, 
     question: q.question.substring(0, 20) + '...', 
-    hasAnswers: q.answers?.length || 0 
+    type: q.questionType,
+    hasAnswers: q.questionType === "Mcq" ? (q.answers?.length || 0) : 'N/A (Input type)'
   })));
   
   const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
@@ -201,16 +204,16 @@ export async function fetchAllQuestionsAndAnswersAdmin(): Promise<{
     const response = await res.json();
     const questions: Question[] = response.data || [];
 
-    const transformedQuestions = questions.map((q) => ({
-      questionID: q.questionID, // Backend uses _id, map to questionID
+    const transformedQuestions = questions.map((q: any) => ({
+      questionID: q._id || q.questionID, // Handle both _id and questionID
       question: q.question,
       questionType: q.questionType,
       questionCategory: q.questionCategory,
       questionLevel: q.questionLevel,
       timesAnswered: q.timesAnswered || 0,
-      timesSkipped: q.timesSkipped,
+      timesSkipped: q.timesSkipped || 0,
       answers: q.answers ? q.answers.map((ans: any) => ({
-        answerID: ans._id, // Backend uses _id, map to answerID
+        answerID: ans._id || ans.answerID, // Handle both _id and answerID
         answer: ans.answer || "",
         responseCount: ans.responseCount || 0,
         isCorrect: ans.isCorrect || false
@@ -249,11 +252,14 @@ export async function fetchAnswersByQuestionId(
   questionId: string
 ): Promise<Answer[]> {
   try {
+    console.log("🔍 Fetching answers for question ID:", questionId);
+    
     const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
       headers: defaultHeaders,
     });
 
     if (res.status === 404) {
+      console.log("❌ No questions found (404)");
       return [];
     }
 
@@ -263,28 +269,48 @@ export async function fetchAnswersByQuestionId(
 
     const response = await res.json();
     const questions = response.data || [];
+    console.log("📋 Total questions in database:", questions.length);
 
-    const question = questions.find((q: any) => q._id === questionId);
+    // Find the question by ID - handle both _id and questionID formats
+    const question = questions.find((q: any) => 
+      q._id === questionId || 
+      q.questionID === questionId ||
+      String(q._id) === String(questionId) ||
+      String(q.questionID) === String(questionId)
+    );
 
-    if (!question || !question.answers) {
+    console.log("🎯 Found question:", question ? "Yes" : "No");
+    
+    if (!question) {
+      console.log("❌ Question not found with ID:", questionId);
+      console.log("Available question IDs:", questions.map((q: any) => ({ _id: q._id, questionID: q.questionID })));
+      return [];
+    }
+
+    if (!question.answers || !Array.isArray(question.answers)) {
+      console.log("📝 Question found but no answers array");
       return [];
     }
 
     let answers: Answer[] = [];
     question.answers.forEach((ans: any) => {
       const responseCount = ans.responseCount || 1;
+      console.log(`💬 Processing answer: "${ans.answer}" with ${responseCount} responses`);
+      
       for (let i = 0; i < responseCount; i++) {
         answers.push({
-          answerID: ans._id,
+          answerID: ans._id || ans.answerID || `${questionId}-${answers.length}`,
           questionId: questionId,
           answer: ans.answer || "",
-          createdAt: question.createdAt,
+          createdAt: question.createdAt || new Date().toISOString(),
         });
       }
     });
 
+    console.log("✅ Total answers processed:", answers.length);
     return answers;
   } catch (error: any) {
+    console.error("❌ Error in fetchAnswersByQuestionId:", error);
     if (error.name === 'TypeError' && error.message.includes('fetch')) {
       throw new Error("Network error: Unable to connect to the server");
     }
