@@ -88,9 +88,14 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
               No complete questions found. Please complete at least one question before submitting.
             </p>
           ) : (
+            // Fixed section of PreviewModal.tsx - replace the question list mapping
+
             <ul className="space-y-4">
               {completedQuestions.map((q, idx) => (
-                <li key={q.questionID || idx} className="border rounded-lg p-4 bg-gray-50">
+                <li 
+                  key={q.questionID || `preview-question-${idx}`} // FIX: Added proper key
+                  className="border rounded-lg p-4 bg-gray-50"
+                >
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="font-medium">Question {idx + 1}</h3>
                     <div className="flex items-center gap-2">
@@ -116,7 +121,10 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
                       <p className="font-medium text-sm text-gray-700 mb-2">Answer Options:</p>
                       <ul className="space-y-1 pl-4">
                         {q.answers.map((option, optIdx) => (
-                          <li key={optIdx} className="flex items-center">
+                          <li 
+                            key={`${q.questionID || idx}-option-${optIdx}`} // FIX: Added proper key
+                            className="flex items-center"
+                          >
                             <div className={`w-4 h-4 rounded-full mr-2 ${
                               option.isCorrect ? 'bg-green-500' : 'bg-gray-200'
                             }`}></div>
