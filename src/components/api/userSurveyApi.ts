@@ -9,7 +9,7 @@ interface QuestionsResponse {
 }
 
 interface RawQuestion {
-  _id: string;
+  questionID: string;
   question: string;
   questionType: string;
   questionCategory: string;
@@ -17,7 +17,7 @@ interface RawQuestion {
   timesAnswered?: number;
   timesSkipped?: number;
   answers?: Array<{
-    _id?: string;
+    answerID?: string;
     answer: string;
     responseCount?: number;
     isCorrect?: boolean;
@@ -41,18 +41,18 @@ export async function fetchAllQuestions(): Promise<Question[]> {
 
   return body.data.map(
     (raw): Question => ({
-      _id: raw._id,
+      questionID: raw.questionID,
       question: raw.question,
-      questionType: raw.questionType || "Input", // Default to Input if not specified
+      questionType: raw.questionType || "Input",
       questionCategory: raw.questionCategory,
       questionLevel: raw.questionLevel,
-      timesAnswered: raw.timesAnswered || 0, // Add required property with default
+      timesAnswered: raw.timesAnswered || 0,
       timesSkipped: raw.timesSkipped,
       answers: raw.answers?.map(ans => ({
-        _id: ans._id,
+        answerID: ans.answerID,
         answer: ans.answer,
-        responseCount: ans.responseCount || 0, // Default value
-        isCorrect: ans.isCorrect || false // Default value
+        responseCount: ans.responseCount || 0,
+        isCorrect: ans.isCorrect || false
       })),
       timeStamp: raw.timeStamp
     })
@@ -66,12 +66,10 @@ export async function fetchQuestionsByLevel(
   return all.filter((q) => q.questionLevel === level);
 }
 
-// Fixed: Submit answers one by one to match backend format
 export async function submitAllAnswers(
   answers: { questionID: string; answerText: string }[]
 ): Promise<void> {
-  // Transform data to match backend format
-  const questions = answers.map(a => ({ _id: a.questionID }));
+  const questions = answers.map(a => ({ questionID: a.questionID }));
   const answerTexts = answers.map(a => ({ answer: a.answerText }));
   
   const payload = {
@@ -86,21 +84,18 @@ export async function submitAllAnswers(
   });
   
   if (!res.ok) {
-    // Handle non-JSON responses more safely
     const text = await res.text();
     let message;
     try {
       const json = JSON.parse(text);
       message = json.message || "Failed to submit answers";
     } catch (e) {
-      // If response isn't valid JSON, use status text
       message = `Server error (${res.status} ${res.statusText})`;
     }
     throw new Error(message);
   }
 }
 
-// New function to match backend format exactly
 export async function submitSingleAnswer(
   questionID: string,
   answer: string
@@ -122,7 +117,6 @@ export async function submitSingleAnswer(
   }
 }
 
-// Legacy function for backward compatibility
 export async function submitAnswer(
   qId: string,
   answerText: string

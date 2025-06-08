@@ -2,7 +2,6 @@ import { useState, useCallback, useRef } from "react";
 import * as api from "../api/adminSurveyApi";
 import { Question } from "../../types";
 
-// Cache duration: 30 seconds (adjust as needed)
 const CACHE_DURATION = 30 * 1000;
 
 export function useAdminSurveyApi() {
@@ -10,7 +9,6 @@ export function useAdminSurveyApi() {
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   
-  // Add cache to avoid unnecessary refetches
   const cache = useRef<{
     questions: Question[] | null;
     timestamp: number;
@@ -22,7 +20,6 @@ export function useAdminSurveyApi() {
   const fetchQuestions = useCallback(async (forceRefresh = false) => {
     const now = Date.now();
     
-    // Check if we have fresh cached data
     if (!forceRefresh && 
         cache.current.questions && 
         (now - cache.current.timestamp) < CACHE_DURATION) {
@@ -37,7 +34,6 @@ export function useAdminSurveyApi() {
       const data = await api.fetchAllQuestionsAdmin();
       setQuestions(data);
       
-      // Update cache
       cache.current = {
         questions: data,
         timestamp: now
@@ -49,14 +45,12 @@ export function useAdminSurveyApi() {
     }
   }, []);
 
-  // Create new questions (POST)
   const createQuestions = useCallback(
     async (newQuestions: Question[]) => {
       setLoading(true);
       setError("");
       try {
         await api.postSurveyQuestions(newQuestions);
-        // Clear cache to force fresh fetch
         cache.current.questions = null;
         await fetchQuestions(true);
       } catch (e: any) {
@@ -68,15 +62,12 @@ export function useAdminSurveyApi() {
     [fetchQuestions]
   );
 
-  // Update existing questions (PUT)
   const updateQuestions = useCallback(
     async (questionsToUpdate: Question[]) => {
       setLoading(true);
       setError("");
       try {
-       
         await api.updateSurveyQuestionsBatch(questionsToUpdate);
-        
         cache.current.questions = null;
         await fetchQuestions(true);
       } catch (e: any) {
@@ -87,21 +78,17 @@ export function useAdminSurveyApi() {
     },
     [fetchQuestions]
   );
-  
 
-  // Delete specific questions
   const deleteQuestions = useCallback(
     async (toDelete: Question[]) => {
       setLoading(true);
       setError("");
       try {
-        const ids = toDelete.map((q) => q.questionID).filter(Boolean) as string[]; // Changed from _id to questionID
+        const ids = toDelete.map((q) => q.questionID).filter(Boolean) as string[];
         
-        // Delete in parallel for better performance
         const deletePromises = ids.map(id => api.deleteQuestionByIdAdmin(id));
         await Promise.all(deletePromises);
         
-        // Clear cache to force fresh fetch
         cache.current.questions = null;
         await fetchQuestions(true);
       } catch (e: any) {

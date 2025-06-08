@@ -15,7 +15,7 @@ import { useParams, useNavigate } from "react-router-dom";
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface Answer {
-  _id: string;
+  answerID: string;
   questionId: string;
   answer: string;
   createdAt?: string;

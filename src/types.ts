@@ -1,6 +1,5 @@
-// src/types.ts
 export interface Question {
-  questionID: string; // Changed from _id
+  questionID: string;
   question: string;
   questionType: string;
   questionCategory: string;
@@ -8,16 +7,17 @@ export interface Question {
   timesSkipped?: number;
   timesAnswered: number;
   answers?: Array<{
-    answerID?: string; // Changed from _id
+    answerID?: string;
     answer: string;
-    responseCount?: number; // Optional for compatibility
+    responseCount?: number;
     isCorrect: boolean;
   }>;
   timeStamp?: boolean;
+  createdAt?: string;
 }
 
 export interface Answer {
-  answerID: string; // Changed from _id
+  answerID: string;
   questionId: string;
   answer: string;
   createdAt?: string;
@@ -30,7 +30,7 @@ export interface User {
 }
 
 export interface Survey {
-  _id: string; // Changed from _id
+  surveyID: string;
   title: string;
   description: string;
   questions: Question[];

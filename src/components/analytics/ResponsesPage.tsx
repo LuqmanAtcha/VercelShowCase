@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Question } from "../../types";
-import { fetchAllQuestionsAndAnswers } from "../api/adminSurveyApi";
+import { fetchAllQuestionsAndAnswersAdmin } from "../api/adminSurveyApi";
 import { useAnalyticsData } from "../hooks/useAnalyticsData";
 
 const ResponsesPage: React.FC = () => {
@@ -17,12 +17,11 @@ const ResponsesPage: React.FC = () => {
   
   const navigate = useNavigate();
 
-  // Handle refresh
   const handleRefresh = async () => {
     setLoading(true);
     setError(null);
     try {
-      const { questions: fetchedQuestions, answers: fetchedAnswers } = await fetchAllQuestionsAndAnswers();
+      const { questions: fetchedQuestions, answers: fetchedAnswers } = await fetchAllQuestionsAndAnswersAdmin();
       setQuestions(fetchedQuestions);
       const sorted = [...fetchedAnswers].sort((a, b) => {
         const t1 = new Date(a.createdAt || "").getTime();
@@ -38,7 +37,6 @@ const ResponsesPage: React.FC = () => {
     }
   };
 
-  // Initial fetch with admin check
   useEffect(() => {
     if (localStorage.getItem("isAdmin") !== "true") {
       navigate("/login", { replace: true });
@@ -49,7 +47,7 @@ const ResponsesPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const { questions: fetchedQuestions, answers: fetchedAnswers } = await fetchAllQuestionsAndAnswers();
+        const { questions: fetchedQuestions, answers: fetchedAnswers } = await fetchAllQuestionsAndAnswersAdmin();
         setQuestions(fetchedQuestions);
         const sorted = [...fetchedAnswers].sort((a, b) => {
           const t1 = new Date(a.createdAt || "").getTime();
@@ -68,10 +66,8 @@ const ResponsesPage: React.FC = () => {
     fetchData();
   }, [navigate]);
 
-  // Analytics data
   const analyticsData = useAnalyticsData(questions);
 
-  // Handle sorting
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -81,13 +77,11 @@ const ResponsesPage: React.FC = () => {
     }
   };
 
-  // Sort indicator
   const SortIndicator = ({ field }: { field: string }) => {
     if (sortField !== field) return <span className="text-gray-400">↕️</span>;
     return <span className="text-purple-600">{sortDirection === "asc" ? "↑" : "↓"}</span>;
   };
 
-  // Filter and sort questions
   const filteredAndSortedQuestions = React.useMemo(() => {
     let filtered = questions.filter((q) => {
       const questionText = (q.question || "").toLowerCase().trim();
@@ -114,27 +108,27 @@ const ResponsesPage: React.FC = () => {
             bValue = levelOrder[b.questionLevel as keyof typeof levelOrder] || 4;
             break;
           case "answered":
-            aValue = analyticsData.answerCounts[a._id] || 0;
-            bValue = analyticsData.answerCounts[b._id] || 0;
+            aValue = analyticsData.answerCounts[a.questionID] || 0;
+            bValue = analyticsData.answerCounts[b.questionID] || 0;
             break;
           case "skipped":
-            aValue = analyticsData.skipCounts[a._id] || 0;
-            bValue = analyticsData.skipCounts[b._id] || 0;
+            aValue = analyticsData.skipCounts[a.questionID] || 0;
+            bValue = analyticsData.skipCounts[b.questionID] || 0;
             break;
           case "skipRate":
-            const aAnswered = analyticsData.answerCounts[a._id] || 0;
-            const aSkipped = analyticsData.skipCounts[a._id] || 0;
+            const aAnswered = analyticsData.answerCounts[a.questionID] || 0;
+            const aSkipped = analyticsData.skipCounts[a.questionID] || 0;
             const aTotal = aAnswered + aSkipped;
             aValue = aTotal > 0 ? (aSkipped / aTotal) * 100 : 0;
             
-            const bAnswered = analyticsData.answerCounts[b._id] || 0;
-            const bSkipped = analyticsData.skipCounts[b._id] || 0;
+            const bAnswered = analyticsData.answerCounts[b.questionID] || 0;
+            const bSkipped = analyticsData.skipCounts[b.questionID] || 0;
             const bTotal = bAnswered + bSkipped;
             bValue = bTotal > 0 ? (bSkipped / bTotal) * 100 : 0;
             break;
           case "total":
-            aValue = (analyticsData.answerCounts[a._id] || 0) + (analyticsData.skipCounts[a._id] || 0);
-            bValue = (analyticsData.answerCounts[b._id] || 0) + (analyticsData.skipCounts[b._id] || 0);
+            aValue = (analyticsData.answerCounts[a.questionID] || 0) + (analyticsData.skipCounts[a.questionID] || 0);
+            bValue = (analyticsData.answerCounts[b.questionID] || 0) + (analyticsData.skipCounts[b.questionID] || 0);
             break;
           default:
             return 0;
@@ -149,7 +143,6 @@ const ResponsesPage: React.FC = () => {
     return filtered;
   }, [questions, searchTerm, filterCategory, filterLevel, sortField, sortDirection, analyticsData]);
 
-  // Get unique categories and levels
   const categories = [...new Set(questions.map(q => q.questionCategory))].filter(Boolean);
   const levels = [...new Set(questions.map(q => q.questionLevel))].filter(Boolean);
 
@@ -226,7 +219,6 @@ const ResponsesPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 flex flex-col">
-      {/* Fixed Header */}
       <div className="flex-shrink-0 p-6 pb-0">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
@@ -248,7 +240,6 @@ const ResponsesPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Filters */}
         <div className="mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-2">
@@ -309,13 +300,11 @@ const ResponsesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="px-6 pb-6">
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <div className="p-6 pb-4">
             <h3 className="text-xl font-semibold mb-4">Responses Table</h3>
             
-            {/* Summary Stats */}
             <div className="mb-4 p-4 bg-gray-50 rounded-lg">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
@@ -338,7 +327,6 @@ const ResponsesPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Scrollable Table */}
           <div className="max-h-[26.4rem] overflow-y-auto border-t border-gray-200">
             <table className="w-full text-left">
               <thead className="sticky top-0 bg-purple-100 z-10">
@@ -392,23 +380,23 @@ const ResponsesPage: React.FC = () => {
                   </tr>
                 ) : (
                   filteredAndSortedQuestions.map((q, index) => {
-                    const answeredQ = analyticsData.answerCounts[q._id] || 0;
-                    const skippedQ = analyticsData.skipCounts[q._id] || 0;
+                    const answeredQ = analyticsData.answerCounts[q.questionID] || 0;
+                    const skippedQ = analyticsData.skipCounts[q.questionID] || 0;
                     const totalQ = answeredQ + skippedQ;
                     const skipRate = totalQ > 0 ? ((skippedQ / totalQ) * 100).toFixed(1) : "0.0";
                     
                     return (
                       <tr
-                        key={q._id}
+                        key={q.questionID}
                         className={`border-b hover:bg-gray-50 ${
-                          recentAnsweredIds.has(q._id) ? 'bg-yellow-100 font-semibold' : 
+                          recentAnsweredIds.has(q.questionID) ? 'bg-yellow-100 font-semibold' : 
                           index % 2 === 0 ? 'bg-white' : 'bg-purple-25'
                         }`}
                       >
                         <td className="px-3 py-2 text-gray-600">{index + 1}</td>
                         <td
                           className="px-3 py-2 text-purple-600 underline cursor-pointer hover:text-purple-800 max-w-xs"
-                          onClick={() => navigate(`/analytics/question/${q._id}`)}
+                          onClick={() => navigate(`/analytics/question/${q.questionID}`)}
                           title={q.question}
                         >
                           <div className="truncate">

@@ -7,64 +7,115 @@ export async function fetchAllQuestionsAdmin(): Promise<Question[]> {
   });
   if (!res.ok) throw new Error("Failed to fetch questions for Admin Page");
   const { data } = await res.json();
+  
   return data.map((q: any) => ({
-    ...q,
-    // Ensure backward compatibility by mapping _id to questionID if needed
-    questionID: q.questionID || q._id,
+    questionID: q._id, // Backend uses _id, map to questionID for frontend
+    question: q.question,
+    questionType: q.questionType,
+    questionCategory: q.questionCategory,
+    questionLevel: q.questionLevel,
+    timesAnswered: q.timesAnswered || 0,
+    timesSkipped: q.timesSkipped,
+    answers: q.answers ? q.answers.map((a: any) => ({
+      answerID: a._id, // Backend uses _id, map to answerID for frontend
+      answer: a.answer,
+      isCorrect: a.isCorrect,
+      responseCount: a.responseCount,
+      rank: a.rank,
+      score: a.score
+    })) : [],
+    timeStamp: q.timeStamp
   }));
 }
 
 export async function deleteQuestionByIdAdmin(
   questionID: string
-): Promise<void> {
+ ): Promise<void> {
+  const payload = {
+    questions: [{ questionID }]
+  };
+  
   const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
     method: "DELETE",
     headers: defaultHeaders,
-    body: JSON.stringify({ questionID }),
+    body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error("Failed to delete question");
-}
-
-export async function deleteAllQuestionsAdmin(ids: string[]): Promise<void> {
-  await Promise.all(ids.map((id) => deleteQuestionByIdAdmin(id)));
-}
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error("Failed to delete question");
+  }
+ }
+ 
+ export async function deleteAllQuestionsAdmin(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  
+  const payload = {
+    questions: ids.map(questionID => ({ questionID }))
+  };
+  
+  const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
+    method: "DELETE",
+    headers: defaultHeaders,
+    body: JSON.stringify(payload),
+  });
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error("Failed to delete questions");
+  }
+ }
 
 export async function updateSurveyQuestionsBatch(
   questions: Question[]
 ): Promise<void> {
+  // Use the exact format that works in Postman
   const payload = {
-    questions: questions.map((q) => ({
-      questionID: q.questionID,
-      question: q.question,
-      questionType: q.questionType,
-      questionCategory: q.questionCategory,
-      questionLevel: q.questionLevel,
-      answers:
-        q.questionType === "Mcq" && q.answers?.length
-          ? q.answers.map((a) => ({
-              answer: a.answer,
-              isCorrect: a.isCorrect,
-              answerID: a.answerID!,
-            }))
-          : [],
-    })),
+    questions: questions.map((q) => {
+      const questionData = {
+        questionID: q.questionID, // This should be included!
+        question: q.question,
+        questionType: q.questionType,
+        questionCategory: q.questionCategory,
+        questionLevel: q.questionLevel,
+        answers: [] as any[],
+      };
+
+      if (q.questionType === "Mcq" && q.answers && q.answers.length > 0) {
+        questionData.answers = q.answers.map((a) => ({
+          answer: a.answer,
+          isCorrect: a.isCorrect,
+          answerID: a.answerID, // This should be included!
+        }));
+      }
+
+      return questionData;
+    }),
   };
 
-  console.log("Bulk PUT payload:", JSON.stringify(payload, null, 2));
+  console.log("🚀 PUT payload:", JSON.stringify(payload, null, 2));
+  console.log("🔍 Input questions received:", questions.map(q => ({ 
+    questionID: q.questionID, 
+    question: q.question.substring(0, 20) + '...', 
+    hasAnswers: q.answers?.length || 0 
+  })));
+  
   const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
     method: "PUT",
     headers: defaultHeaders,
     body: JSON.stringify(payload),
   });
+  
   if (!res.ok) {
-    throw new Error(`Bulk update failed (${res.status})`);
+    const errorText = await res.text();
+    console.error("🚨 PUT request failed:", res.status, errorText);
+    throw new Error(`Bulk update failed (${res.status}): ${errorText}`);
   }
 }
 
 export async function postSurveyQuestions(
   questions: Question[]
 ): Promise<void> {
-  // Filter out questions that already have IDs (existing questions)
   const newQuestions = questions.filter((q) => !q.questionID);
 
   if (newQuestions.length === 0) return;
@@ -76,9 +127,9 @@ export async function postSurveyQuestions(
         questionType: q.questionType,
         questionCategory: q.questionCategory,
         questionLevel: q.questionLevel,
+        answers: [],
       };
 
-      // Add answers array for MCQ questions
       if (q.questionType === "Mcq" && q.answers && q.answers.length > 0) {
         questionData.answers = q.answers.map((a) => ({
           answer: a.answer,
@@ -90,6 +141,7 @@ export async function postSurveyQuestions(
     }),
   };
 
+  console.log("📝 POST payload:", JSON.stringify(payload, null, 2));
   const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
     method: "POST",
     headers: defaultHeaders,
@@ -97,7 +149,9 @@ export async function postSurveyQuestions(
   });
 
   if (!res.ok) {
-    throw new Error("Failed to post survey questions");
+    const errorText = await res.text();
+    console.error("🚨 POST request failed:", res.status, errorText);
+    throw new Error(`Failed to post survey questions (${res.status}): ${errorText}`);
   }
 }
 
@@ -116,43 +170,34 @@ export async function fetchAllQuestionsAndAnswersAdmin(): Promise<{
   const response = await res.json();
   const questions: Question[] = response.data || [];
 
-  // Transform the data to ensure skip counting works properly
-  const transformedQuestions = questions.map((q) => {
-    // Ensure questionID is available
-    const questionID = q.questionID || (q as any)._id;
+  const transformedQuestions = questions.map((q) => ({
+    questionID: q.questionID, // Backend uses _id, map to questionID
+    question: q.question,
+    questionType: q.questionType,
+    questionCategory: q.questionCategory,
+    questionLevel: q.questionLevel,
+    timesAnswered: q.timesAnswered || 0,
+    timesSkipped: q.timesSkipped,
+    answers: q.answers ? q.answers.map((ans: any) => ({
+      answerID: ans._id, // Backend uses _id, map to answerID
+      answer: ans.answer || "",
+      responseCount: ans.responseCount || 0,
+      isCorrect: ans.isCorrect || false
+    })) : [],
+    timeStamp: q.timeStamp,
+    createdAt: q.createdAt
+  }));
 
-    if (q.answers && Array.isArray(q.answers)) {
-      // Ensure each answer entry has proper structure for skip detection
-      const processedAnswers = q.answers.map((ans) => ({
-        ...ans,
-        // Ensure answerID is available
-        answerID: ans.answerID || (ans as any)._id,
-        // Normalize empty answers to be consistent
-        answer: ans.answer || "",
-        responseCount: ans.responseCount || 0,
-      }));
-
-      return {
-        ...q,
-        questionID,
-        answers: processedAnswers,
-      };
-    }
-    return { ...q, questionID };
-  });
-
-  // Create a flat answers array for backward compatibility
   let allAnswers: Answer[] = [];
 
   transformedQuestions.forEach((q: any) => {
     if (q.answers && Array.isArray(q.answers)) {
       q.answers.forEach((ans: any) => {
-        // Create individual answer records based on responseCount
         for (let i = 0; i < (ans.responseCount || 1); i++) {
           allAnswers.push({
-            answerID: ans.answerID || `${q.questionID}-${ans.answer}-${i}`,
+            answerID: ans.answerID,
             questionId: q.questionID,
-            answer: ans.answer || "", // Ensure empty answers are properly handled
+            answer: ans.answer || "",
             createdAt: q.createdAt,
           });
         }
@@ -177,9 +222,7 @@ export async function fetchAnswersByQuestionId(
   const response = await res.json();
   const questions = response.data || [];
 
-  const question = questions.find(
-    (q: any) => q.questionID === questionId || (q as any)._id === questionId
-  );
+  const question = questions.find((q: any) => q._id === questionId);
 
   if (!question || !question.answers) {
     return [];
@@ -190,9 +233,9 @@ export async function fetchAnswersByQuestionId(
     const responseCount = ans.responseCount || 1;
     for (let i = 0; i < responseCount; i++) {
       answers.push({
-        answerID: ans.answerID || `${questionId}-${i}`,
+        answerID: ans._id,
         questionId: questionId,
-        answer: ans.answer || "", // Handle empty answers properly
+        answer: ans.answer || "",
         createdAt: question.createdAt,
       });
     }

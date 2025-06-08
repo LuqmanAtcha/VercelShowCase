@@ -38,8 +38,8 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
     );
   }, [questions]);
 
-  const newQuestions = completedQuestions.filter(q => !q._id || q._id === "");
-  const existingQuestions = completedQuestions.filter(q => q._id && q._id !== "");
+  const newQuestions = completedQuestions.filter(q => !q.questionID || q.questionID === "");
+  const existingQuestions = completedQuestions.filter(q => q.questionID && q.questionID !== "");
 
   return (
     <div
@@ -90,14 +90,14 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({
           ) : (
             <ul className="space-y-4">
               {completedQuestions.map((q, idx) => (
-                <li key={q._id || idx} className="border rounded-lg p-4 bg-gray-50">
+                <li key={q.questionID || idx} className="border rounded-lg p-4 bg-gray-50">
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="font-medium">Question {idx + 1}</h3>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-500">
                         {q.questionCategory} / {q.questionLevel}
                       </span>
-                      {q._id ? (
+                      {q.questionID ? (
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Existing</span>
                       ) : (
                         <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">New</span>

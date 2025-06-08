@@ -34,7 +34,6 @@ const SurveyPage: React.FC = () => {
   const [showUIImmediately, setShowUIImmediately] = useState(false);
   const navigate = useNavigate();
  
-  // Check if admin on mount
   useEffect(() => {
     if (localStorage.getItem("isAdmin") !== "true") {
       navigate("/login", { replace: true });
@@ -42,17 +41,13 @@ const SurveyPage: React.FC = () => {
     }
   }, [navigate]);
  
-  // Initialize with empty questions
   useEffect(() => {
-    // Show empty questions first, then fetch from API
-    // This prevents flickering when questions are loading
     if (!showUIImmediately) {
       const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
       
-      // Initialize with one empty question per level
       LEVELS.forEach((lvl) => {
         emptyMap[lvl] = [{
-          questionID: "", // Changed from _id
+          questionID: "",
           question: "",
           questionType: "Input",
           questionCategory: "",
@@ -65,28 +60,24 @@ const SurveyPage: React.FC = () => {
       setShowUIImmediately(true);
     }
     
-    // Then load actual questions
     fetchQuestions();
   }, [fetchQuestions]);
  
-  // Populate questions by level when they load
   useEffect(() => {
     if (!showUIImmediately || questions.length === 0) return;
 
     const map: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
    
-    // If we have existing questions, populate them
     questions.forEach((q) => {
       if (q.questionLevel && LEVELS.includes(q.questionLevel as Level)) {
         map[q.questionLevel as Level].push(q);
       }
     });
 
-    // Ensure at least one empty placeholder per level
     LEVELS.forEach((lvl) => {
       if (map[lvl].length === 0) {
         map[lvl].push({
-          questionID: "", // Changed from _id
+          questionID: "",
           question: "",
           questionType: "Input",
           questionCategory: "",
@@ -98,7 +89,6 @@ const SurveyPage: React.FC = () => {
     setQuestionsByLevel(map);
   }, [questions, showUIImmediately]);
  
-  // Update a single level's list
   const updateTabQuestions = (level: Level, list: Question[]) => {
     setQuestionsByLevel((prev) => ({ ...prev, [level]: list }));
   };
@@ -112,7 +102,7 @@ const SurveyPage: React.FC = () => {
     const list = questionsByLevel[level];
     const lastCat = list[list.length - 1]?.questionCategory || "";
     const newQ: Question = {
-      questionID: "", // Changed from _id
+      questionID: "",
       question: "",
       questionType: "Input",
       questionCategory: lastCat,
@@ -139,16 +129,14 @@ const SurveyPage: React.FC = () => {
  
   const onDeleteCurrent = async () => {
     const list = questionsByLevel[currentTab];
-    if (list.length <= 1) return; // keep one placeholder
+    if (list.length <= 1) return;
    
     const toDelete = list[currentIndex];
    
-    // If it's an existing question (has questionID), delete from backend
     if (toDelete.questionID) {
       await deleteQuestions([toDelete]);
     }
    
-    // Remove from local state
     const newList = list.filter((_, i) => i !== currentIndex);
     updateTabQuestions(currentTab, newList);
     setCurrentIndex((prev) => Math.max(prev - 1, 0));
@@ -169,7 +157,7 @@ const SurveyPage: React.FC = () => {
    
     updateTabQuestions(levelToDelete, [
       {
-        questionID: "", // Changed from _id
+        questionID: "",
         question: "",
         questionType: "Input",
         questionCategory: "",
@@ -196,9 +184,7 @@ const SurveyPage: React.FC = () => {
     } else {
       const newList = [...list];
       
-      // Handle special case for question type change
       if (field === "questionType") {
-        // If changing from MCQ to Input, we need to remove the answers array
         if (value === "Input" && q.answers) {
           const { answers, ...rest } = q;
           newList[currentIndex] = { ...rest, [field]: value };
@@ -220,19 +206,38 @@ const SurveyPage: React.FC = () => {
       (q) => q.question.trim() && q.questionCategory && q.questionLevel
     ).length;
  
-  const handleCreateNew = () => {
+  const handleCreateNew = async () => {
     if (window.confirm("This will create new survey questions. Continue?")) {
       const allQs = LEVELS.flatMap((lvl) => questionsByLevel[lvl])
-        .filter(q => q.question.trim() && q.questionCategory && q.questionLevel);
-      createQuestions(allQs);
+        .filter(q => q.question.trim() && q.questionCategory && q.questionLevel && !q.questionID);
+      
+      try {
+        await createQuestions(allQs);
+        await fetchQuestions();
+      } catch (error) {
+        console.error("Creation failed:", error);
+      }
     }
   };
  
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (window.confirm("This will update the existing survey. Continue?")) {
       const allQs = LEVELS.flatMap((lvl) => questionsByLevel[lvl])
-        .filter(q => q.question.trim() && q.questionCategory && q.questionLevel);
-      updateQuestions(allQs);
+        .filter(q => q.question.trim() && q.questionCategory && q.questionLevel && q.questionID);
+      
+      console.log("🔍 Questions being sent for update:", allQs.map(q => ({
+        questionID: q.questionID,
+        question: q.question.substring(0, 30) + '...',
+        type: q.questionType,
+        answerCount: q.answers?.length || 0
+      })));
+      
+      try {
+        await updateQuestions(allQs);
+        await fetchQuestions();
+      } catch (error) {
+        console.error("Update failed:", error);
+      }
     }
   };
  
@@ -242,7 +247,7 @@ const SurveyPage: React.FC = () => {
       const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
       LEVELS.forEach((lvl) => {
         emptyMap[lvl] = [{
-          questionID: "", // Changed from _id
+          questionID: "",
           question: "",
           questionType: "Input",
           questionCategory: "",
@@ -260,7 +265,6 @@ const SurveyPage: React.FC = () => {
     await fetchQuestions();
   };
 
-  // Show loading only if we haven't shown UI yet
   if (!showUIImmediately) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 flex items-center justify-center">
@@ -309,7 +313,6 @@ const SurveyPage: React.FC = () => {
         formDescription="Add or edit questions for each level."
       />
 
-      {/* Delete All Questions Dialog */}
       {showDeleteDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md text-center animate-in slide-in-from-bottom-4 duration-300">

@@ -50,7 +50,6 @@ export const useAnalyticsData = (questions: Question[]): AnalyticsData => {
     const answerCounts: Record<string, number> = {};
     const skipCounts: Record<string, number> = {};
 
-    // Initialize counts for all questions
     questions.forEach((q) => {
       if (!categoryCounts[q.questionCategory]) {
         categoryCounts[q.questionCategory] = 0;
@@ -58,22 +57,18 @@ export const useAnalyticsData = (questions: Question[]): AnalyticsData => {
       categoryCounts[q.questionCategory]++;
       levelCounts[q.questionLevel] = (levelCounts[q.questionLevel] || 0) + 1;
 
-      // Initialize per‐question counts
-      answerCounts[q._id] = 0;
-      skipCounts[q._id] = q.timesSkipped ?? 0;
+      answerCounts[q.questionID] = 0;
+      skipCounts[q.questionID] = q.timesSkipped ?? 0;
 
-      // Count actual answers from the question's embedded answers array
       if (q.answers && Array.isArray(q.answers)) {
         q.answers.forEach((answerData) => {
-          // Only count non‐empty answers as actual responses
           if (answerData.answer && answerData.answer.trim() !== "") {
-            answerCounts[q._id] += answerData.responseCount;
+            answerCounts[q.questionID] += answerData.responseCount || 0;
           }
         });
       }
     });
 
-    // Calculate totals
     const totalAnswered = Object.values(answerCounts).reduce(
       (sum, cnt) => sum + cnt,
       0
@@ -88,16 +83,14 @@ export const useAnalyticsData = (questions: Question[]): AnalyticsData => {
         ? ((totalSkipped / totalResponses) * 100).toFixed(1)
         : "0.0";
 
-    // Create leaderboard based on actual answers (not including skips)
     const leaderboard = questions
       .map((q) => ({
         question: q.question,
-        responses: answerCounts[q._id] || 0,
+        responses: answerCounts[q.questionID] || 0,
       }))
       .sort((a, b) => b.responses - a.responses)
       .slice(0, 5);
 
-    // Chart data
     const categoryChartData = {
       labels: predefinedCategories,
       datasets: [

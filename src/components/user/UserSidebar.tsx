@@ -1,4 +1,3 @@
-// src/components/user/UserSidebar.tsx
 import React from "react";
 
 interface UserSidebarProps {
@@ -44,7 +43,7 @@ const UserSidebar: React.FC<UserSidebarProps> = ({
       <ul className="space-y-2 flex-1">
         {questions.map((q, i) => (
           <li
-            key={q.id}
+            key={q.questionID}
             onClick={() => onSelectQuestion(i)}
             className={`group relative flex items-center justify-between px-4 py-3 rounded-xl text-sm cursor-pointer transition-all duration-200 ${
               index === i

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { X, Plus, Check } from "lucide-react";
 import { Question } from "../../types";
 
-// Centralize the allowed options
 const categories = ["Vocabulary", "Grammar", "Culture", "Literature", "History"] as const;
 const levels = ["Beginner", "Intermediate", "Advanced"] as const;
 const questionTypes = ["Input", "Mcq"] as const;
@@ -36,14 +35,12 @@ interface McqOption {
   answerID?: string;
 }
 
-// For typing any answer format
 interface AnyAnswer {
   answer: string;
   answerID?: string;
   [key: string]: any;
 }
 
-// Define the component outside of the main component
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   show,
   title,
@@ -102,7 +99,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
     const [showClearDialog, setShowClearDialog] = useState(false);
     const [showAddNextDialog, setShowAddNextDialog] = useState(false);
     
-    // Default MCQ options if none exist
     const defaultMcqOptions: McqOption[] = [
       { answer: "", isCorrect: true },
       { answer: "", isCorrect: false },
@@ -110,52 +106,39 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
       { answer: "", isCorrect: false },
     ];
     
-    // Get MCQ options from question or use defaults
-    // Handle both the API response format and our local format
     const mcqOptions = question.answers && question.answers.length > 0 
       ? question.answers.map((a) => {
-          // Type assertion to help TypeScript understand we know the structure
           const answer = a as AnyAnswer;
           
-          // Check if this is a standard API answer or an MCQ answer
           if ('isCorrect' in answer) {
-            // It's already in the format we need
             return {
               answer: answer.answer || "",
               isCorrect: answer.isCorrect || false,
-              answerID: answer.answerID // Include answerID for existing answers
+              answerID: answer.answerID
             };
           } else {
-            // It's a standard answer, convert to MCQ format
-            // For existing questions, assume first answer is correct if not specified
             return {
               answer: answer.answer || "",
-              isCorrect: false, // Default to false, we'll set one to true below
+              isCorrect: false,
               answerID: answer.answerID
             };
           }
         })
       : defaultMcqOptions;
     
-    // Ensure at least one option is marked as correct if we have options
     if (mcqOptions.length > 0 && !mcqOptions.some(opt => opt.isCorrect)) {
       mcqOptions[0].isCorrect = true;
     }
 
-    // Validation functions
     const isCategorySelected = () => !!(question.questionCategory?.trim());
     const isQuestionTextEntered = () => !!(question.question?.trim());
     const isLevelSelected = () => !!(question.questionLevel?.trim());
     const isQuestionTypeSelected = () => !!(question.questionType?.trim());
     
-    // For MCQ validation
     const areMcqOptionsValid = () => {
       if (question.questionType !== "Mcq") return true;
       
-      // Check if at least one option is marked as correct
       const hasCorrectOption = mcqOptions.some(opt => opt.isCorrect);
-      
-      // Check if all options have text
       const allOptionsHaveText = mcqOptions.every(opt => opt.answer.trim() !== "");
       
       return hasCorrectOption && allOptionsHaveText;
@@ -170,14 +153,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
 
     const handleClear = () => {
       if (!isQuestionTextEntered() && !isCategorySelected()) {
-        // Nothing to clear, no need for confirmation
         return;
       }
       setShowClearDialog(true);
     };
 
     const confirmClear = () => {
-      // Ensure all fields are cleared together
       onUpdate("question", "");
       onUpdate("questionCategory", "");
       if (question.questionType === "Mcq") {
@@ -187,7 +168,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
     };
 
     const handleDeleteClick = () => {
-      if (isFirst) return; // Don't show dialog if it's the first (can't delete)
+      if (isFirst) return;
       setShowDeleteDialog(true);
     };
 
@@ -201,13 +182,11 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
     };
 
     const handleNextClick = () => {
-      if (isLast) return; // Can't move next if it's the last question
+      if (isLast) return;
 
-      // If question has content but is incomplete, show confirmation
       if ((isQuestionTextEntered() || isCategorySelected()) && !isQuestionComplete()) {
         setShowMoveNextDialog(true);
       } else {
-        // If question is complete or completely empty, move directly
         onNext();
       }
     };
@@ -222,11 +201,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
     };
 
     const handleAddNextClick = () => {
-      // If current question has content but is incomplete, show confirmation
       if ((isQuestionTextEntered() || isCategorySelected()) && !isQuestionComplete()) {
         setShowAddNextDialog(true);
       } else {
-        // If question is complete or completely empty, add directly
         onAddNext();
       }
     };
@@ -240,18 +217,21 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
       setShowAddNextDialog(false);
     };
     
-    // Handle MCQ option changes
     const handleMcqOptionChange = (index: number, value: string) => {
       const newOptions = [...mcqOptions];
-      newOptions[index].answer = value;
+      newOptions[index] = {
+        ...newOptions[index],
+        answer: value,
+        ...(newOptions[index].answerID && { answerID: newOptions[index].answerID })
+      };
       onUpdate("answers", newOptions);
     };
     
-    // Handle setting correct answer
     const handleSetCorrectOption = (index: number) => {
       const newOptions = mcqOptions.map((opt, idx) => ({
         ...opt,
-        isCorrect: idx === index
+        isCorrect: idx === index,
+        ...(opt.answerID && { answerID: opt.answerID })
       }));
       onUpdate("answers", newOptions);
     };
@@ -259,7 +239,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
     const handleQuestionTypeChange = (type: string) => {
       onUpdate("questionType", type);
       
-      // If switching to MCQ, initialize options if needed
       if (type === "Mcq" && (!question.answers || question.answers.length === 0)) {
         onUpdate("answers", defaultMcqOptions);
       }
@@ -271,7 +250,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
     return (
       <>
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-6">
-          {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <h3 className="text-2xl font-bold text-gray-900">
@@ -299,7 +277,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
             </button>
           </div>
 
-          {/* Category, Level and Question Type */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-900">
@@ -356,7 +333,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
             </div>
           </div>
 
-          {/* Question Text - Disabled until category is selected */}
           <div className="space-y-3">
             <label className="block text-sm font-semibold text-gray-900">
               Question Text <span className="text-red-500">*</span>
@@ -396,7 +372,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
             </div>
           </div>
           
-          {/* MCQ Options - Only show if question type is MCQ */}
           {question.questionType === "Mcq" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -438,7 +413,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-gray-100">
             <button
               onClick={handleClear}
@@ -480,7 +454,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
           </div>
         </div>
 
-        {/* Delete Confirmation Dialog */}
         <ConfirmationDialog
           show={showDeleteDialog}
           title="Delete Question"
@@ -491,7 +464,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
           onCancel={cancelDelete}
         />
 
-        {/* Move Next Confirmation Dialog */}
         <ConfirmationDialog
           show={showMoveNextDialog}
           title="Incomplete Question"
@@ -502,7 +474,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
           onCancel={cancelMoveNext}
         />
 
-        {/* Clear Fields Confirmation Dialog */}
         <ConfirmationDialog
           show={showClearDialog}
           title="Clear All Fields"
@@ -513,7 +484,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = React.memo(
           onCancel={() => setShowClearDialog(false)}
         />
 
-        {/* Add Next Confirmation Dialog */}
         <ConfirmationDialog
           show={showAddNextDialog}
           title="Incomplete Question"

@@ -9,40 +9,32 @@ import UserQuestionCard from "./UserQuestionCard";
 const UserSurvey: React.FC = () => {
   const navigate = useNavigate();
 
-  // 1) Set proficiency level
   const [proficiency, setProficiency] = useState<string>("");
   const [showModal, setShowModal] = useState(true);
 
-  // 2) Hook loads questions for that level
   const { questions, loading, error, submitting, setError, submitAllAnswers } =
     useUserSurveyApi(proficiency);
 
-  // 3) Local answer state & view state
   const [answers, setAnswers] = useState<string[]>([]);
   const [index, setIndex] = useState(0);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
   
-  // Custom popup state
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState("");
   const [isSuccessPopup, setIsSuccessPopup] = useState(true);
 
-  // Initialize answers array when questions arrive
   useEffect(() => {
     if (questions.length) {
       setAnswers(Array(questions.length).fill(""));
     }
   }, [questions]);
 
-  // Count of answered (non-"" and non-"skip")
   const answeredCount = answers.filter((a) => a && a !== "skip").length;
 
-  // Move to next question or show preview dialog
   const handleSaveNext = () => {
     const currentAnswer = answers[index]?.trim();
     
-    // Check if the question is neither answered nor skipped
     if (!currentAnswer && answers[index] !== "skip") {
       setError("Please answer the question or click Skip.");
       return;
@@ -56,20 +48,16 @@ const UserSurvey: React.FC = () => {
     }
   };
 
-  // Mark this one skipped
   const handleSkip = () => {
     const copy = [...answers];
     if (copy[index] === "skip") {
-      // Unskip - clear the answer
       copy[index] = "";
     } else {
-      // Skip - mark as skipped
       copy[index] = "skip";
     }
     setAnswers(copy);
     setError("");
 
-    // Only auto-advance if we're skipping (not unskipping)
     if (copy[index] === "skip") {
       if (index < questions.length - 1) {
         setIndex((i) => i + 1);
@@ -79,18 +67,15 @@ const UserSurvey: React.FC = () => {
     }
   };
 
-  // Jump to a question in the sidebar
   const handleSelectQuestion = (i: number) => {
     setIndex(i);
     setShowPreviewDialog(false);
   };
 
-  // Submit all answers
   const handlePublish = async () => {
     try {
       const payload = questions.map((q, i) => ({
-        questionID: q._id,
-        // For skipped questions, send empty string. For answered questions, send the answer or empty string if blank
+        questionID: q.questionID,
         answerText: answers[i] === "skip" ? "" : (answers[i] || ""),
       }));
       await submitAllAnswers(payload);
@@ -105,7 +90,6 @@ const UserSurvey: React.FC = () => {
     }
   };
 
-  // Handle popup close
   const handleClosePopup = () => {
     setShowPopup(false);
     if (isSuccessPopup) {
@@ -113,20 +97,17 @@ const UserSurvey: React.FC = () => {
     }
   };
 
-  // Close preview dialog
   const handleClosePreview = () => {
     setShowPreviewDialog(false);
   };
 
-  // Handle answer change
   const handleAnswerChange = (value: string) => {
     const copy = [...answers];
     copy[index] = value;
     setAnswers(copy);
-    setError(""); // Clear any existing errors when user types
+    setError("");
   };
 
-  // --- Render phases ---
   if (showModal) {
     return (
       <ProficiencyModal

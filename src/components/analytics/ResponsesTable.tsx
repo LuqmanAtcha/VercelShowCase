@@ -73,23 +73,23 @@ export const ResponsesTable: React.FC<ResponsesTableProps> = ({
                 </tr>
               ) : (
                 questions.map((q, index) => {
-                  const answeredQ = answerCounts[q._id] || 0;
-                  const skippedQ = skipCounts[q._id] || 0;
+                  const answeredQ = answerCounts[q.questionID] || 0;
+                  const skippedQ = skipCounts[q.questionID] || 0;
                   const totalQ = answeredQ + skippedQ;
                   const skipRate = totalQ > 0 ? ((skippedQ / totalQ) * 100).toFixed(1) : "0.0";
                   
                   return (
                     <tr
-                      key={q._id}
+                      key={q.questionID}
                       className={`border-b hover:bg-gray-50 ${
-                        recentAnsweredIds.has(q._id) ? 'bg-yellow-100 font-semibold' : 
+                        recentAnsweredIds.has(q.questionID) ? 'bg-yellow-100 font-semibold' : 
                         index % 2 === 0 ? 'bg-white' : 'bg-purple-25'
                       }`}
                     >
                       <td className="px-3 py-2 text-gray-600">{index + 1}</td>
                       <td
                         className="px-3 py-2 text-purple-600 underline cursor-pointer hover:text-purple-800 max-w-xs"
-                        onClick={() => navigate(`/analytics/question/${q._id}`)}
+                        onClick={() => navigate(`/analytics/question/${q.questionID}`)}
                         title={q.question}
                       >
                         <div className="truncate">
