@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Question } from "../../types";
+import { Question } from "../../types/types";
 
 interface AnalyticsData {
   categoryCounts: Record<string, number>;
