@@ -10,7 +10,7 @@ import {
   Legend,
   ArcElement,
 } from "chart.js";
-import { Question, Answer } from "../../types";
+import { Question, Answer } from "../../types/types";
 import { StatsOverview } from "./StatsOverview";
 import { CategoryChart } from "./CategoryChart";
 import { LevelChart } from "./LevelChart";
@@ -58,14 +58,18 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
       setIsEmpty(fetchedQuestions.length === 0);
     } catch (e: any) {
       console.error("Analytics fetch error:", e);
-      
+
       // Check if it's a 404 or indicates no questions
-      if (e.message.includes("404") || 
-          e.message.includes("No questions") ||
-          e.message.includes("empty")) {
+      if (
+        e.message.includes("404") ||
+        e.message.includes("No questions") ||
+        e.message.includes("empty")
+      ) {
         setIsEmpty(true);
         setQuestions([]);
-        setErr("No questions found in the database. Please add some questions first in the admin dashboard.");
+        setErr(
+          "No questions found in the database. Please add some questions first in the admin dashboard."
+        );
       } else {
         setErr(e.message);
       }
@@ -93,14 +97,18 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
         setIsEmpty(fetchedQuestions.length === 0);
       } catch (e: any) {
         console.error("Analytics fetch error:", e);
-        
+
         // Check if it's a 404 or indicates no questions
-        if (e.message.includes("404") || 
-            e.message.includes("No questions") ||
-            e.message.includes("empty")) {
+        if (
+          e.message.includes("404") ||
+          e.message.includes("No questions") ||
+          e.message.includes("empty")
+        ) {
           setIsEmpty(true);
           setQuestions([]);
-          setErr("No questions found in the database. Please add some questions first in the admin dashboard.");
+          setErr(
+            "No questions found in the database. Please add some questions first in the admin dashboard."
+          );
         } else {
           setErr(e.message);
         }
@@ -170,13 +178,26 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
         {renderHeader()}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            <svg
+              className="w-8 h-8 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
             </svg>
           </div>
-          <h3 className="text-xl font-semibold text-blue-900 mb-2">No Survey Data Available</h3>
+          <h3 className="text-xl font-semibold text-blue-900 mb-2">
+            No Survey Data Available
+          </h3>
           <p className="text-blue-700 mb-4">
-            There are no questions in your survey database yet. You need to create some questions before you can view analytics.
+            There are no questions in your survey database yet. You need to
+            create some questions before you can view analytics.
           </p>
           <div className="space-y-3">
             <button
@@ -186,7 +207,8 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
               Go to Admin Dashboard
             </button>
             <p className="text-blue-600 text-sm">
-              Create questions in the admin dashboard, then return here to view analytics and responses.
+              Create questions in the admin dashboard, then return here to view
+              analytics and responses.
             </p>
           </div>
         </div>
@@ -201,8 +223,18 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <div className="text-red-600 mb-4">
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <svg
+                className="w-6 h-6 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             </div>
             <p className="text-lg font-semibold">Error loading analytics</p>
