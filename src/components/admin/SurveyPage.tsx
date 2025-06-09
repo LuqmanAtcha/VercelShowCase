@@ -1,4 +1,4 @@
-// Updated SurveyPage.tsx - Tracks individual question changes and updates only modified questions
+// Updated SurveyPage.tsx - Smart update logic: single PUT for 1 question, bulk for multiple
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminSurveyApi } from "../hooks/useAdminSurveyApi";
@@ -20,8 +20,8 @@ const SurveyPage: React.FC = () => {
     setError,
     fetchQuestions,
     createQuestions,
-    updateSingleQuestion, // NEW: Use single question update
-    updateQuestionsBatch, // KEPT: For batch operations if needed
+    updateSingleQuestion, // Single question update
+    updateQuestionsBatch, // Bulk update
     deleteQuestions,
   } = useAdminSurveyApi();
 
@@ -45,14 +45,14 @@ const SurveyPage: React.FC = () => {
     Advanced: [],
   });
 
-  // NEW: Track original questions state for change detection
+  // Track original questions state for change detection
   const [originalQuestions, setOriginalQuestions] = useState<QMap>({
     Beginner: [],
     Intermediate: [],
     Advanced: [],
   });
 
-  // NEW: Track which questions have been modified
+  // Track which questions have been modified
   const [modifiedQuestions, setModifiedQuestions] = useState<Set<string>>(new Set());
 
   const hasFetchedOnce = useRef(false);
@@ -91,7 +91,7 @@ const SurveyPage: React.FC = () => {
     setShowConfirmation(true);
   };
 
-  // NEW: Deep comparison utility to detect changes
+  // Deep comparison utility to detect changes
   const questionsAreEqual = (q1: Question, q2: Question): boolean => {
     if (q1.question !== q2.question) return false;
     if (q1.questionType !== q2.questionType) return false;
@@ -114,7 +114,7 @@ const SurveyPage: React.FC = () => {
     return true;
   };
 
-  // NEW: Mark question as modified
+  // Mark question as modified
   const markQuestionAsModified = (questionID: string) => {
     if (questionID) {
       setModifiedQuestions(prev => new Set(prev).add(questionID));
@@ -122,7 +122,7 @@ const SurveyPage: React.FC = () => {
     }
   };
 
-  // NEW: Clear modification tracking
+  // Clear modification tracking
   const clearModifications = () => {
     setModifiedQuestions(new Set());
     console.log("🧹 Cleared all modification tracking");
@@ -364,7 +364,7 @@ const SurveyPage: React.FC = () => {
     setShowDeleteDialog(false);
   };
 
-  // UPDATED: Question update function with change tracking (no auto-save)
+  // Question update function with change tracking (no auto-save)
   const onUpdateQuestion = (field: keyof Question, value: any) => {
     const currentQuestions = getCurrentQuestions();
     const question = currentQuestions[currentIndex];
@@ -396,7 +396,7 @@ const SurveyPage: React.FC = () => {
       }
       updateCurrentQuestions(currentTab, newList);
       
-      // NEW: Track changes but don't auto-save
+      // Track changes but don't auto-save
       if (mode === "edit" && question.questionID) {
         const updatedQuestion = newList[currentIndex];
         
@@ -412,7 +412,7 @@ const SurveyPage: React.FC = () => {
     setError("");
   };
 
-  // NEW: Find original question by ID
+  // Find original question by ID
   const findOriginalQuestion = (questionID: string): Question | null => {
     for (const level of LEVELS) {
       const question = originalQuestions[level].find(q => q.questionID === questionID);
@@ -421,7 +421,7 @@ const SurveyPage: React.FC = () => {
     return null;
   };
 
-  // NEW: Update original question state after successful save
+  // Update original question state after successful save
   const updateOriginalQuestion = (updatedQuestion: Question) => {
     setOriginalQuestions(prev => {
       const newOriginal = { ...prev };
@@ -476,7 +476,7 @@ const SurveyPage: React.FC = () => {
     );
   };
 
-  // NEW: Save only the currently modified questions
+  // ⭐ NEW: Smart update logic - single PUT for 1 question, bulk for multiple
   const handleUpdateModifiedQuestions = async () => {
     if (modifiedQuestions.size === 0) {
       setError("No questions have been modified.");
@@ -499,27 +499,56 @@ const SurveyPage: React.FC = () => {
       return;
     }
 
-    showLoading("update", `Updating ${questionsToUpdate.length} modified question${questionsToUpdate.length > 1 ? 's' : ''}...`);
-    
-    try {
-      // Update each modified question individually
-      for (const question of questionsToUpdate) {
-        await updateSingleQuestion(question);
-        console.log("✅ Updated question:", question.questionID);
+    console.log(`🔍 Found ${questionsToUpdate.length} modified questions to update`);
+
+    // ⭐ SMART LOGIC: Choose update method based on count
+    if (questionsToUpdate.length === 1) {
+      // Use single question update for better performance and clearer logging
+      const singleQuestion = questionsToUpdate[0];
+      console.log(`📝 Using SINGLE PUT for 1 question: ${singleQuestion.questionID}`);
+      
+      showLoading("update", `Updating question: "${singleQuestion.question.substring(0, 30)}..."`);
+      
+      try {
+        await updateSingleQuestion(singleQuestion);
+        console.log("✅ Single question updated successfully");
         
         // Update the original questions state to reflect the new saved state
-        updateOriginalQuestion(question);
+        updateOriginalQuestion(singleQuestion);
+        
+        await fetchQuestions(); // Refresh to ensure consistency
+      } catch (error: any) {
+        console.error("❌ Failed to update single question:", error);
+        setError(`Failed to update question: ${error.message}`);
+      } finally {
+        hideLoading();
       }
+    } else {
+      // Use batch update for multiple questions
+      console.log(`📝 Using BULK PUT for ${questionsToUpdate.length} questions`);
       
-      console.log(`✅ Successfully updated ${questionsToUpdate.length} modified questions`);
-      await fetchQuestions(); // Refresh to ensure consistency
-      clearModifications();
-    } catch (error: any) {
-      console.error("❌ Failed to update modified questions:", error);
-      setError(`Failed to update questions: ${error.message}`);
-    } finally {
-      hideLoading();
+      showLoading("update", `Updating ${questionsToUpdate.length} modified questions...`);
+      
+      try {
+        await updateQuestionsBatch(questionsToUpdate);
+        console.log(`✅ Successfully updated ${questionsToUpdate.length} questions in bulk`);
+        
+        // Update the original questions state for all updated questions
+        questionsToUpdate.forEach(question => {
+          updateOriginalQuestion(question);
+        });
+        
+        await fetchQuestions(); // Refresh to ensure consistency
+      } catch (error: any) {
+        console.error("❌ Failed to update questions in bulk:", error);
+        setError(`Failed to update questions: ${error.message}`);
+      } finally {
+        hideLoading();
+      }
     }
+
+    // Clear modifications after successful update (for both single and bulk)
+    clearModifications();
   };
 
   // Show loading or empty state
@@ -579,7 +608,7 @@ const SurveyPage: React.FC = () => {
         onPrev={() => setCurrentIndex(i => Math.max(i - 1, 0))}
         onNext={() => setCurrentIndex(i => Math.min(i + 1, getCurrentQuestions().length - 1))}
         onCreateNew={handleCreateNew}
-        onUpdate={handleUpdateModifiedQuestions} // Update only modified questions
+        onUpdate={handleUpdateModifiedQuestions} // ⭐ Smart update function
         onSwitchToCreate={switchToCreateMode}
         onSwitchToEdit={switchToEditMode}
         onPreview={() => setShowPreview(true)}
@@ -653,13 +682,14 @@ const SurveyPage: React.FC = () => {
         </div>
       )}
 
-      {/* NEW: Show indicator for modified questions that need saving */}
+      {/* Show indicator for modified questions that need saving */}
       {modifiedQuestions.size > 0 && (
         <div className="fixed bottom-4 right-4 bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
             <span className="text-sm">
-              {modifiedQuestions.size} question{modifiedQuestions.size > 1 ? 's' : ''} modified - Click 'Update' to save
+              {modifiedQuestions.size} question{modifiedQuestions.size > 1 ? 's' : ''} modified - 
+              {modifiedQuestions.size === 1 ? ' Single PUT' : ' Bulk PUT'} will be used
             </span>
           </div>
         </div>
