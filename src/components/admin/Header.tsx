@@ -1,7 +1,8 @@
+// src/components/admin/Header.tsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LogoutPrompt from "../common/LogoutPrompt";
-import UpdatePrompt from "../common/UpdateConfirmPrompt"; // ADD THIS LINE
+import UpdatePrompt from "../common/UpdateConfirmPrompt";
 
 interface HeaderProps {
   completedCount: number;
@@ -30,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const [showLogoutPrompt, setShowLogoutPrompt] = useState(false);
-  const [showUpdatePrompt, setShowUpdatePrompt] = useState(false); // ADD THIS
+  const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
 
   const handleLogoutClick = () => setShowLogoutPrompt(true);
   const handleConfirmLogout = () => {
@@ -39,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
   const handleCancelLogout = () => setShowLogoutPrompt(false);
 
-  // --- UPDATE POPUP LOGIC ---
+  // Update popup logic
   const handleUpdateClick = () => setShowUpdatePrompt(true);
   const handleConfirmUpdate = () => {
     setShowUpdatePrompt(false);
@@ -77,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
                     : "bg-white text-purple-700 border border-purple-200 hover:bg-purple-50"
                 }`}
             >
-              <span className="text-lg">➕</span> Create
+              <span className="text-lg">➕</span> Add
             </button>
             <button
               onClick={onSwitchToEdit}
@@ -116,7 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             ) : (
               <button
-                onClick={handleUpdateClick} // <-- Changed here!
+                onClick={handleUpdateClick}
                 disabled={isSubmitting || completedCount === 0}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition font-semibold"
               >

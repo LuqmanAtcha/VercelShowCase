@@ -164,7 +164,7 @@ const UserQuestionCard: React.FC<UserQuestionCardProps> = ({
             <div className="max-h-48 overflow-y-auto mb-4 space-y-3">
               {questions.map((q, i) => (
                 <div
-                  key={q._id}
+                  key={q.questionID || q._id || `question-${i}`} // FIX: Added proper key
                   className="bg-gray-50 rounded-xl p-3 text-sm"
                 >
                   <p className="font-medium text-gray-800 mb-1">

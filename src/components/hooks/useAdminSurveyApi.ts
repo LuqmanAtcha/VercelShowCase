@@ -1,64 +1,81 @@
+// src/components/hooks/useAdminSurveyApi.ts
 import { useState, useCallback, useRef } from "react";
 import * as api from "../api/adminSurveyApi";
-import { Question } from "../../types";
+import { Question } from "../../types/types";
 
-// Cache duration: 30 seconds (adjust as needed)
 const CACHE_DURATION = 30 * 1000;
 
 export function useAdminSurveyApi() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
-  
-  // Add cache to avoid unnecessary refetches
+  const [isEmpty, setIsEmpty] = useState(false); // New state to track if database is empty
+
   const cache = useRef<{
     questions: Question[] | null;
     timestamp: number;
   }>({
     questions: null,
-    timestamp: 0
+    timestamp: 0,
   });
 
   const fetchQuestions = useCallback(async (forceRefresh = false) => {
     const now = Date.now();
-    
-    // Check if we have fresh cached data
-    if (!forceRefresh && 
-        cache.current.questions && 
-        (now - cache.current.timestamp) < CACHE_DURATION) {
+
+    if (
+      !forceRefresh &&
+      cache.current.questions &&
+      now - cache.current.timestamp < CACHE_DURATION
+    ) {
       setQuestions(cache.current.questions);
+      setIsEmpty(cache.current.questions.length === 0);
       return;
     }
 
     setLoading(true);
     setError("");
-    
+    setIsEmpty(false);
+
     try {
-      const data = await api.fetchAllQuestions();
+      const data = await api.fetchAllQuestionsAdmin();
       setQuestions(data);
-      
-      // Update cache
+      setIsEmpty(data.length === 0);
+
       cache.current = {
         questions: data,
-        timestamp: now
+        timestamp: now,
       };
     } catch (e: any) {
-      setError(e.message);
+      console.error("Error fetching questions:", e);
+
+      // Check if it's a 404 or network error indicating no questions exist
+      if (
+        e.message.includes("404") ||
+        e.message.includes("Failed to fetch questions") ||
+        e.message.includes("Network error")
+      ) {
+        setIsEmpty(true);
+        setQuestions([]);
+        setError(
+          "No questions found in the database. Please add some questions to get started."
+        );
+      } else {
+        setError(e.message);
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Create new questions (POST)
   const createQuestions = useCallback(
     async (newQuestions: Question[]) => {
       setLoading(true);
       setError("");
       try {
         await api.postSurveyQuestions(newQuestions);
-        // Clear cache to force fresh fetch
         cache.current.questions = null;
         await fetchQuestions(true);
+        setIsEmpty(false); // Reset empty state after successful creation
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -68,26 +85,12 @@ export function useAdminSurveyApi() {
     [fetchQuestions]
   );
 
-  // Update existing questions (PUT)
   const updateQuestions = useCallback(
     async (questionsToUpdate: Question[]) => {
       setLoading(true);
       setError("");
       try {
-        // Batch operations for better performance
-        const existingQuestions = questionsToUpdate.filter(q => q._id && q._id !== "");
-        const newQuestions = questionsToUpdate.filter(q => !q._id || q._id === "");
-        
-        // Run operations in parallel when possible
-        const updatePromises = existingQuestions.map(q => api.updateQuestionById(q));
-        await Promise.all(updatePromises);
-        
-        // Create new questions
-        if (newQuestions.length > 0) {
-          await api.postSurveyQuestions(newQuestions);
-        }
-        
-        // Clear cache to force fresh fetch
+        await api.updateSurveyQuestionsBatch(questionsToUpdate);
         cache.current.questions = null;
         await fetchQuestions(true);
       } catch (e: any) {
@@ -99,19 +102,18 @@ export function useAdminSurveyApi() {
     [fetchQuestions]
   );
 
-  // Delete specific questions
   const deleteQuestions = useCallback(
     async (toDelete: Question[]) => {
       setLoading(true);
       setError("");
       try {
-        const ids = toDelete.map((q) => q._id).filter(Boolean) as string[];
-        
-        // Delete in parallel for better performance
-        const deletePromises = ids.map(id => api.deleteQuestionById(id));
+        const ids = toDelete
+          .map((q) => q.questionID)
+          .filter(Boolean) as string[];
+
+        const deletePromises = ids.map((id) => api.deleteQuestionByIdAdmin(id));
         await Promise.all(deletePromises);
-        
-        // Clear cache to force fresh fetch
+
         cache.current.questions = null;
         await fetchQuestions(true);
       } catch (e: any) {
@@ -127,6 +129,7 @@ export function useAdminSurveyApi() {
     questions,
     isLoading,
     error,
+    isEmpty, // Export the isEmpty state
     fetchQuestions,
     createQuestions,
     updateQuestions,

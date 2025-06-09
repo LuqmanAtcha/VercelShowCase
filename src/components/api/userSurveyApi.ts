@@ -1,5 +1,6 @@
+// Fixed userSurveyApi.ts - Proper ID handling for user survey operations
 import { API_BASE, defaultHeaders } from "./config";
-import { Question } from "../../types";
+import { Question } from "../../types/types";
 
 interface QuestionsResponse {
   statusCode: number;
@@ -9,17 +10,30 @@ interface QuestionsResponse {
 }
 
 interface RawQuestion {
-  _id: string;
+  _id: string; // Backend uses _id, not questionID
   question: string;
   questionType: string;
   questionCategory: string;
   questionLevel: string;
+  timesAnswered?: number;
+  timesSkipped?: number;
+  answers?: Array<{
+    _id?: string; // Backend uses _id for answers too
+    answer: string;
+    responseCount?: number;
+    isCorrect?: boolean;
+  }>;
+  timeStamp?: boolean;
+  createdAt?: string;
 }
 
 export async function fetchAllQuestions(): Promise<Question[]> {
+  console.log("🌐 Fetching all questions from user API...");
+
   const res = await fetch(`${API_BASE}/api/v1/survey/`, {
     headers: defaultHeaders,
   });
+
   if (!res.ok) {
     throw new Error(`Network error: ${res.status}`);
   }
@@ -30,81 +44,127 @@ export async function fetchAllQuestions(): Promise<Question[]> {
     throw new Error(`Server error: ${body.message}`);
   }
 
-  return body.data.map(
+  console.log("📋 Raw questions received:", body.data.length);
+
+  // FIX: Map _id to questionID correctly and handle all ID variations
+  const transformedQuestions = body.data.map(
     (raw): Question => ({
-      _id: raw._id,
+      questionID: raw._id, // Map _id to questionID for frontend consistency
       question: raw.question,
-      questionType: raw.questionType,
+      questionType: raw.questionType || "Input",
       questionCategory: raw.questionCategory,
       questionLevel: raw.questionLevel,
+      timesAnswered: raw.timesAnswered || 0,
+      timesSkipped: raw.timesSkipped || 0,
+      answers: raw.answers?.map((ans) => ({
+        answerID: ans._id, // Map _id to answerID for frontend consistency
+        answer: ans.answer,
+        responseCount: ans.responseCount || 0,
+        isCorrect: ans.isCorrect || false,
+      })),
+      timeStamp: raw.timeStamp,
+      createdAt: raw.createdAt,
     })
   );
+
+  console.log(
+    "✅ Transformed questions:",
+    transformedQuestions.map((q) => ({
+      questionID: q.questionID,
+      question: q.question.substring(0, 30) + "...",
+    }))
+  );
+
+  return transformedQuestions;
 }
 
 export async function fetchQuestionsByLevel(
   level: string
 ): Promise<Question[]> {
+  console.log("🎯 Fetching questions for level:", level);
+
   const all = await fetchAllQuestions();
-  return all.filter((q) => q.questionLevel === level);
+  const filtered = all.filter((q) => q.questionLevel === level);
+
+  console.log(`📊 Found ${filtered.length} questions for ${level} level`);
+  return filtered;
 }
 
-// Fixed: Submit answers one by one to match backend format
+// FIX: Update to use the correct submission format with proper ID mapping
 export async function submitAllAnswers(
   answers: { questionID: string; answerText: string }[]
 ): Promise<void> {
-  // Transform data to match backend format
-  const questions = answers.map(a => ({ _id: a.questionID }));
-  const answerTexts = answers.map(a => ({ answer: a.answerText }));
-  
+  console.log("📤 Submitting answers:", answers.length);
+
+  // Transform to the correct format expected by the backend
+  // Backend expects _id format, so we need to map questionID back to _id
   const payload = {
-    questions: questions,
-    answers: answerTexts
+    questions: answers.map((a) => ({ _id: a.questionID })), // Use _id format for backend
+    answers: answers.map((a) => ({ answer: a.answerText })),
   };
+
+  console.log("🚀 Submission payload:", JSON.stringify(payload, null, 2));
 
   const res = await fetch(`${API_BASE}/api/v1/survey/`, {
     method: "PUT",
     headers: defaultHeaders,
     body: JSON.stringify(payload),
   });
-  
+
   if (!res.ok) {
-    // Handle non-JSON responses more safely
     const text = await res.text();
+    console.error("❌ Submission failed:", res.status, text);
+
     let message;
     try {
       const json = JSON.parse(text);
       message = json.message || "Failed to submit answers";
     } catch (e) {
-      // If response isn't valid JSON, use status text
       message = `Server error (${res.status} ${res.statusText})`;
     }
     throw new Error(message);
   }
+
+  console.log("✅ Answers submitted successfully");
 }
 
-// New function to match backend format exactly
+// FIX: Update single answer submission format
 export async function submitSingleAnswer(
   questionID: string,
   answer: string
 ): Promise<void> {
+  console.log("📤 Submitting single answer for question:", questionID);
+
   const payload = {
-    questionID: questionID,
-    answer: answer
+    questions: [{ _id: questionID }], // Use _id format for backend
+    answers: [{ answer: answer }],
   };
+
+  console.log("🚀 Single answer payload:", JSON.stringify(payload, null, 2));
 
   const res = await fetch(`${API_BASE}/api/v1/survey/`, {
     method: "PUT",
     headers: defaultHeaders,
     body: JSON.stringify(payload),
   });
-  
+
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || "Failed to submit answer");
+    const text = await res.text();
+    console.error("❌ Single answer submission failed:", res.status, text);
+
+    let message;
+    try {
+      const json = JSON.parse(text);
+      message = json.message || "Failed to submit answer";
+    } catch (e) {
+      message = `Server error (${res.status} ${res.statusText})`;
+    }
+    throw new Error(message);
   }
+
+  console.log("✅ Single answer submitted successfully");
 }
 
-// Legacy function for backward compatibility
 export async function submitAnswer(
   qId: string,
   answerText: string

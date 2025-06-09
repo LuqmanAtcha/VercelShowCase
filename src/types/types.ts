@@ -1,22 +1,23 @@
-// src/types.ts
 export interface Question {
-  _id: string;
+  questionID: string;
   question: string;
   questionType: string;
   questionCategory: string;
   questionLevel: string;
   timesSkipped?: number;
+  timesAnswered: number;
   answers?: Array<{
-    _id?: string;
+    answerID?: string;
     answer: string;
-    responseCount: number;
+    responseCount?: number;
+    isCorrect: boolean;
   }>;
+  timeStamp?: boolean;
   createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface Answer {
-  _id: string;
+  answerID: string;
   questionId: string;
   answer: string;
   createdAt?: string;
@@ -29,7 +30,7 @@ export interface User {
 }
 
 export interface Survey {
-  _id: string;
+  surveyID: string;
   title: string;
   description: string;
   questions: Question[];

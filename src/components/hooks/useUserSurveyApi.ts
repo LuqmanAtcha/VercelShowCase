@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import * as api from "../api/userSurveyApi";
-import { Question } from "../../types";
+import { Question } from "../../types/types";
 
 export function useUserSurveyApi(level: string) {
   const [questions, setQuestions] = useState<Question[]>([]);

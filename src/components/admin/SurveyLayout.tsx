@@ -1,10 +1,11 @@
+// src/components/admin/SurveyLayout.tsx
 import React, { memo } from "react";
 import { Sidebar } from "./Sidebar";
-import { QuestionCard } from "./QuestionCard";
+import QuestionCard from "./QuestionCard";
 import { PreviewModal } from "./PreviewModal";
 import { Header } from "./Header";
 import ErrorAlert from "../common/ErrorAlert";
-import { Question } from "../../types";
+import { Question } from "../../types/types";
 
 const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
 type Level = (typeof LEVELS)[number];
@@ -20,6 +21,7 @@ interface SurveyLayoutProps {
   error: string;
   mode: "create" | "edit";
 
+  onSelectLevel: (level: Level) => void;
   onSelectQuestion: (level: Level, index: number) => void;
   onAddQuestion: (level: Level) => void;
   onPrev: () => void;
@@ -51,6 +53,7 @@ function SurveyLayout({
   isSubmitting,
   error,
   mode,
+  onSelectLevel,
   onSelectQuestion,
   onAddQuestion,
   onPrev,
@@ -69,6 +72,9 @@ function SurveyLayout({
   formTitle,
   formDescription,
 }: SurveyLayoutProps) {
+  // Clamp index so it never goes out of bounds
+  const safeIndex = Math.min(currentIndex, Math.max(questions.length - 1, 0));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
       <Header
@@ -86,48 +92,26 @@ function SurveyLayout({
 
       {error && <ErrorAlert message={error} onDismiss={onErrorDismiss} />}
 
-      <div className="flex flex-col xl:flex-row px-16 py-8 flex justify-between items-start">
+      <div className="flex flex-col xl:flex-row px-16 py-8 justify-between items-start">
         {/* Sidebar */}
         <aside className="w-[700px] flex-shrink-0">
           <MemoizedSidebar
             questionsByLevel={questionsByLevel}
             currentLevel={currentLevel}
-            currentIndex={currentIndex}
+            onSelectLevel={onSelectLevel}
+            currentIndex={safeIndex}
             onSelect={onSelectQuestion}
-            onAdd={onAddQuestion}
             onDeleteAll={onDeleteAllQuestions}
             completedCount={completedCount}
+            mode={mode}
+            onAddQuestion={onAddQuestion}
           />
         </aside>
 
-        {/* Main Content: extra wide */}
+        {/* Main Content */}
         <main className="flex-1 flex flex-col items-center">
           <section className="w-full max-w-4xl xl:max-w-12xl">
-            {/* Survey Title and Current Level */}
-            <div className="bg-white rounded-2xl shadow border border-gray-100 px-10 py-7 mb-7">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-2xl font-extrabold text-gray-900 mb-1 tracking-tight">{formTitle}</h1>
-                  <p className="text-gray-600 text-base">{formDescription}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-500 mb-1">Current Level</div>
-                  <div
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow ${
-                      currentLevel === "Beginner"
-                        ? "bg-green-100 text-green-700"
-                        : currentLevel === "Intermediate"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {currentLevel}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Question Content */}
+            {/* Question Panel */}
             <div className="flex-1 min-h-0">
               {questions.length === 0 ? (
                 <div className="bg-white rounded-2xl shadow border border-gray-100 p-12 text-center h-full flex items-center justify-center">
@@ -147,9 +131,12 @@ function SurveyLayout({
                         />
                       </svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Questions Yet</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      No Questions Yet
+                    </h3>
                     <p className="text-gray-500 mb-6">
-                      Start building your survey by adding questions to any difficulty level.
+                      Start building your survey by adding questions to any
+                      difficulty level.
                     </p>
                     <div className="flex gap-3 justify-center">
                       {LEVELS.map((level) => (
@@ -171,22 +158,18 @@ function SurveyLayout({
                   </div>
                 </div>
               ) : (
-                questions[currentIndex] && (
-                  <div className="h-full">
-                    <MemoizedQuestionCard
-                      question={questions[currentIndex]}
-                      index={currentIndex}
-                      isFirst={currentIndex === 0}
-                      isLast={currentIndex === questions.length - 1}
-                      onPrev={onPrev}
-                      onNext={onNext}
-                      onDelete={onDeleteCurrent}
-                      onUpdate={onUpdateQuestion}
-                      onAddNext={() => onAddQuestion(currentLevel)}
-                      currentTabLevel={currentLevel}
-                    />
-                  </div>
-                )
+                <MemoizedQuestionCard
+                  question={questions[safeIndex]!}
+                  index={safeIndex}
+                  isFirst={safeIndex === 0}
+                  isLast={safeIndex === questions.length - 1}
+                  onPrev={onPrev}
+                  onNext={onNext}
+                  onDelete={onDeleteCurrent}
+                  onUpdate={onUpdateQuestion}
+                  onAddNext={() => onAddQuestion(currentLevel)}
+                  currentTabLevel={currentLevel}
+                />
               )}
             </div>
           </section>
