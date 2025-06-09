@@ -103,15 +103,14 @@ function SurveyLayout({
             onSelect={onSelectQuestion}
             onDeleteAll={onDeleteAllQuestions}
             completedCount={completedCount}
+            mode={mode}
+            onAddQuestion={onAddQuestion}
           />
         </aside>
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col items-center">
           <section className="w-full max-w-4xl xl:max-w-12xl">
-            
-            
-
             {/* Question Panel */}
             <div className="flex-1 min-h-0">
               {questions.length === 0 ? (
