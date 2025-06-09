@@ -1,4 +1,4 @@
-// src/components/admin/QuestionCard.tsx
+// Updated QuestionCard.tsx - Question type disabled in edit mode
 import React, { useState } from "react";
 import { X, Plus, Check } from "lucide-react";
 import { Question } from "../../types/types";
@@ -21,9 +21,10 @@ interface QuestionCardProps {
   onPrev(): void;
   onNext(): void;
   onDelete(): void;
-  onUpdate(field: keyof Question, value: string | any): void;
+  onUpdate(field: keyof Question, value: any): void;
   onAddNext(): void;
   currentTabLevel: string;
+  mode?: "create" | "edit"; // NEW: Add mode prop
 }
 
 interface McqOption {
@@ -43,6 +44,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   onUpdate,
   onAddNext,
   currentTabLevel,
+  mode = "create", // NEW: Default to create mode for backward compatibility
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -94,6 +96,9 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
 
   const isCategorySelected = () => !!question.questionCategory?.trim();
   const nearLimit = (question.question?.length || 0) > 450;
+
+  // NEW: Check if question type should be disabled
+  const isQuestionTypeDisabled = Boolean(mode === "edit" && question.questionID);
 
   return (
     <>
@@ -157,7 +162,13 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
             <select
               value={question.questionType || "Input"}
               onChange={(e) => onUpdate("questionType", e.target.value)}
-              className="w-full border-2 rounded-xl px-4 py-3 bg-white"
+              disabled={isQuestionTypeDisabled}
+              className={`w-full border-2 rounded-xl px-4 py-3 transition-colors ${
+                isQuestionTypeDisabled
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200"
+                  : "bg-white hover:border-gray-300"
+              }`}
+              title={isQuestionTypeDisabled ? "Question type cannot be changed in edit mode" : ""}
             >
               {questionTypes.map((type) => (
                 <option key={type} value={type}>
@@ -165,6 +176,12 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 </option>
               ))}
             </select>
+            {isQuestionTypeDisabled && (
+              <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                <span>🔒</span>
+                Question type cannot be changed in edit mode
+              </p>
+            )}
           </div>
         </div>
 
@@ -227,7 +244,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                   />
                   <button
                     onClick={() => handleSetCorrectOption(i)}
-                    className={`w-6 h-6 flex items-center justify-center rounded-full ${
+                    className={`w-6 h-6 flex items-center justify-center rounded-full transition-colors ${
                       opt.isCorrect
                         ? "bg-green-600 text-white"
                         : "bg-gray-200 hover:bg-gray-300"
