@@ -1,4 +1,4 @@
-// Fixed adminSurveyApi.ts - Proper ID handling between backend and frontend
+// Updated adminSurveyApi.ts - Added single question update function
 import { API_BASE, defaultHeaders } from "./config";
 import { Question, Answer } from "../../types/types";
 
@@ -98,6 +98,55 @@ export async function deleteAllQuestionsAdmin(ids: string[]): Promise<void> {
   }
 }
 
+// NEW: Single question update function
+export async function updateSingleQuestion(question: Question): Promise<void> {
+  // Build the payload with only the single question
+  const questionData: any = {
+    questionID: question.questionID,
+    question: question.question,
+    questionType: question.questionType,
+    questionCategory: question.questionCategory,
+    questionLevel: question.questionLevel,
+  };
+
+  // Only include answers array for MCQ questions
+  if (question.questionType === "Mcq" && question.answers && question.answers.length > 0) {
+    questionData.answers = question.answers.map((a) => ({
+      answer: a.answer,
+      isCorrect: a.isCorrect,
+      answerID: a.answerID,
+    }));
+  }
+  // For Input type questions, don't include answers array at all
+
+  const payload = {
+    questions: [questionData],
+  };
+
+  console.log("🚀 Single question PUT payload:", JSON.stringify(payload, null, 2));
+  console.log("🔍 Updating question:", {
+    questionID: question.questionID,
+    question: question.question.substring(0, 30) + "...",
+    type: question.questionType,
+    hasAnswers: question.questionType === "Mcq" ? question.answers?.length || 0 : "N/A (Input type)",
+  });
+
+  const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
+    method: "PUT",
+    headers: defaultHeaders,
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error("🚨 Single question PUT request failed:", res.status, errorText);
+    throw new Error(`Failed to update question (${res.status}): ${errorText}`);
+  }
+
+  console.log("✅ Single question updated successfully");
+}
+
+// KEPT: Batch update function for existing bulk operations
 export async function updateSurveyQuestionsBatch(
   questions: Question[]
 ): Promise<void> {
@@ -126,7 +175,7 @@ export async function updateSurveyQuestionsBatch(
     }),
   };
 
-  console.log("🚀 PUT payload:", JSON.stringify(payload, null, 2));
+  console.log("🚀 Batch PUT payload:", JSON.stringify(payload, null, 2));
   console.log(
     "🔍 Input questions received:",
     questions.map((q) => ({

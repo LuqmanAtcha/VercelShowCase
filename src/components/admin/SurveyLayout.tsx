@@ -1,4 +1,4 @@
-// src/components/admin/SurveyLayout.tsx
+// Updated SurveyLayout.tsx - Pass mode prop to QuestionCard
 import React, { memo } from "react";
 import { Sidebar } from "./Sidebar";
 import QuestionCard from "./QuestionCard";
@@ -169,6 +169,7 @@ function SurveyLayout({
                   onUpdate={onUpdateQuestion}
                   onAddNext={() => onAddQuestion(currentLevel)}
                   currentTabLevel={currentLevel}
+                  mode={mode} // NEW: Pass mode to QuestionCard
                 />
               )}
             </div>

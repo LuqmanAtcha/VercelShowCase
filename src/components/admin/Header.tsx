@@ -1,4 +1,4 @@
-// src/components/admin/Header.tsx
+// Updated Header.tsx - Updated to reflect auto-save functionality
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LogoutPrompt from "../common/LogoutPrompt";
@@ -10,7 +10,7 @@ interface HeaderProps {
   mode: "create" | "edit";
   onPreview(): void;
   onCreateNew(): void;
-  onUpdate(): void;
+  onUpdate(): void; // Now used for batch updates only
   onSwitchToCreate(): void;
   onSwitchToEdit(): void;
   isSubmitting: boolean;
@@ -40,7 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
   const handleCancelLogout = () => setShowLogoutPrompt(false);
 
-  // Update popup logic
+  // Update popup logic - now for batch operations only
   const handleUpdateClick = () => setShowUpdatePrompt(true);
   const handleConfirmUpdate = () => {
     setShowUpdatePrompt(false);
@@ -121,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({
                 disabled={isSubmitting || completedCount === 0}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition font-semibold"
               >
-                ✏️ {isSubmitting ? "Updating..." : "Update Existing"}
+                ✏️ {isSubmitting ? "Updating..." : "Update Changes"}
               </button>
             )}
             <button
@@ -142,7 +142,7 @@ export const Header: React.FC<HeaderProps> = ({
         onConfirm={handleConfirmLogout}
         onCancel={handleCancelLogout}
       />
-      {/* UPDATE MODAL */}
+      {/* BATCH UPDATE MODAL */}
       <UpdatePrompt
         show={showUpdatePrompt}
         onConfirm={handleConfirmUpdate}
