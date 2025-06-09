@@ -1,4 +1,4 @@
-// src/components/hooks/useAdminSurveyApi.ts
+// Updated useAdminSurveyApi.ts - Added single question update functionality
 import { useState, useCallback, useRef } from "react";
 import * as api from "../api/adminSurveyApi";
 import { Question } from "../../types/types";
@@ -9,7 +9,7 @@ export function useAdminSurveyApi() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
-  const [isEmpty, setIsEmpty] = useState(false); // New state to track if database is empty
+  const [isEmpty, setIsEmpty] = useState(false);
 
   const cache = useRef<{
     questions: Question[] | null;
@@ -75,7 +75,7 @@ export function useAdminSurveyApi() {
         await api.postSurveyQuestions(newQuestions);
         cache.current.questions = null;
         await fetchQuestions(true);
-        setIsEmpty(false); // Reset empty state after successful creation
+        setIsEmpty(false);
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -85,7 +85,28 @@ export function useAdminSurveyApi() {
     [fetchQuestions]
   );
 
-  const updateQuestions = useCallback(
+  // NEW: Single question update function
+  const updateSingleQuestion = useCallback(
+    async (question: Question) => {
+      setLoading(true);
+      setError("");
+      try {
+        await api.updateSingleQuestion(question);
+        cache.current.questions = null;
+        await fetchQuestions(true);
+        console.log("✅ Single question updated successfully");
+      } catch (e: any) {
+        console.error("❌ Failed to update single question:", e);
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchQuestions]
+  );
+
+  // KEPT: Batch update function for existing bulk operations
+  const updateQuestionsBatch = useCallback(
     async (questionsToUpdate: Question[]) => {
       setLoading(true);
       setError("");
@@ -129,10 +150,11 @@ export function useAdminSurveyApi() {
     questions,
     isLoading,
     error,
-    isEmpty, // Export the isEmpty state
+    isEmpty,
     fetchQuestions,
     createQuestions,
-    updateQuestions,
+    updateSingleQuestion, // NEW: Export single question update
+    updateQuestionsBatch, // RENAMED: Export batch update with clearer name
     deleteQuestions,
     setError,
   };
