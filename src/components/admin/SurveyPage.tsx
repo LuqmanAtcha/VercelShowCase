@@ -1,9 +1,10 @@
-// src/components/admin/SurveyPage.tsx
+// src/components/admin/SurveyPage.tsx - Corrected with Simple Loading
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminSurveyApi } from "../hooks/useAdminSurveyApi";
 import SurveyLayout from "./SurveyLayout";
 import AdminEmptyState from "./AdminEmptyState";
+import LoadingPopup from "../common/LoadingPopup";
 import { Question } from "../../types/types";
 
 const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
@@ -12,7 +13,7 @@ type QMap = Record<Level, Question[]>;
 
 const SurveyPage: React.FC = () => {
   const {
-    questions,
+    questions: existingQuestions,
     isLoading,
     error,
     isEmpty,
@@ -23,12 +24,27 @@ const SurveyPage: React.FC = () => {
     deleteQuestions,
   } = useAdminSurveyApi();
 
-  const [questionsByLevel, setQuestionsByLevel] = useState<QMap>({
+  // Loading states
+  const [loadingState, setLoadingState] = useState({
+    show: false,
+    message: "",
+    variant: "fetch" as "create" | "update" | "delete" | "fetch",
+  });
+
+  // Separate state for new questions (Add mode) vs existing questions (Edit mode)
+  const [newQuestionsByLevel, setNewQuestionsByLevel] = useState<QMap>({
     Beginner: [],
     Intermediate: [],
     Advanced: [],
   });
-  const hasFetchedOnce = useRef(false); 
+  
+  const [existingQuestionsByLevel, setExistingQuestionsByLevel] = useState<QMap>({
+    Beginner: [],
+    Intermediate: [],
+    Advanced: [],
+  });
+
+  const hasFetchedOnce = useRef(false);
   const [currentTab, setCurrentTab] = useState<Level>("Beginner");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [mode, setMode] = useState<"create" | "edit">("edit");
@@ -38,10 +54,20 @@ const SurveyPage: React.FC = () => {
   const [showUIImmediately, setShowUIImmediately] = useState(false);
   const navigate = useNavigate();
 
+  // Confirmation dialog state
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationTitle, setConfirmationTitle] = useState("");
   const [confirmationMessage, setConfirmationMessage] = useState("");
   const [onConfirmAction, setOnConfirmAction] = useState<() => void>(() => {});
+
+  // Loading helpers
+  const showLoading = (variant: typeof loadingState.variant, message?: string) => {
+    setLoadingState({ show: true, variant, message: message || "" });
+  };
+
+  const hideLoading = () => {
+    setLoadingState({ show: false, message: "", variant: "fetch" });
+  };
 
   const showConfirmationDialog = (
     title: string,
@@ -54,100 +80,205 @@ const SurveyPage: React.FC = () => {
     setShowConfirmation(true);
   };
 
+  // Admin check
   useEffect(() => {
     if (localStorage.getItem("isAdmin") !== "true") {
       navigate("/login", { replace: true });
     }
   }, [navigate]);
 
+  // Initialize UI immediately for better UX
   useEffect(() => {
-  if (!showUIImmediately) {
-    const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
-    LEVELS.forEach((lvl) => {
-      emptyMap[lvl] = [
-        {
-          questionID: "",
-          question: "",
-          questionType: "Input",
-          questionCategory: "",
-          questionLevel: lvl,
-          timesAnswered: 0,
-        },
-      ];
-    });
-    setQuestionsByLevel(emptyMap);
-    setShowUIImmediately(true);
-  }
+    if (!showUIImmediately) {
+      initializeEditMode();
+      setShowUIImmediately(true);
+    }
 
-  // ✅ Prevent multiple fetches
-  if (showUIImmediately && !hasFetchedOnce.current) {
-    hasFetchedOnce.current = true;
-    fetchQuestions();
-  }
-}, [fetchQuestions, showUIImmediately]);
+    // Fetch existing questions once
+    if (showUIImmediately && !hasFetchedOnce.current) {
+      hasFetchedOnce.current = true;
+      showLoading("fetch", "Loading Questions...");
+      fetchQuestions().finally(() => hideLoading());
+    }
+  }, [fetchQuestions, showUIImmediately]);
 
-
+  // Update existing questions when fetched
   useEffect(() => {
     if (!showUIImmediately) return;
-    if (isEmpty && questions.length === 0) return;
+    
+    if (mode === "edit") {
+      updateExistingQuestionsFromFetch();
+    }
+  }, [existingQuestions, showUIImmediately, mode]);
+
+  // Initialize edit mode with existing questions or empty placeholders
+  const initializeEditMode = () => {
     const map: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
-    questions.forEach((q) => {
+    
+    existingQuestions.forEach((q) => {
       if (q.questionLevel && LEVELS.includes(q.questionLevel as Level)) {
         map[q.questionLevel as Level].push(q);
       }
     });
-    if (questions.length > 0 || mode === "create") {
-      LEVELS.forEach((lvl) => {
-        if (map[lvl].length === 0) {
-          map[lvl].push({
-            questionID: "",
-            question: "",
-            questionType: "Input",
-            questionCategory: "",
-            questionLevel: lvl,
-            timesAnswered: 0,
-          });
-        }
-      });
-    }
-    setQuestionsByLevel(map);
-  }, [questions, showUIImmediately, isEmpty, mode]);
 
-  const updateTabQuestions = (level: Level, list: Question[]) => {
-    setQuestionsByLevel((prev) => ({ ...prev, [level]: list }));
+    LEVELS.forEach((lvl) => {
+      if (map[lvl].length === 0) {
+        map[lvl].push(createEmptyQuestion(lvl));
+      }
+    });
+
+    setExistingQuestionsByLevel(map);
   };
 
+  // Update existing questions when new data is fetched
+  const updateExistingQuestionsFromFetch = () => {
+    if (isEmpty && existingQuestions.length === 0) return;
+    
+    const map: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
+    
+    existingQuestions.forEach((q) => {
+      if (q.questionLevel && LEVELS.includes(q.questionLevel as Level)) {
+        map[q.questionLevel as Level].push(q);
+      }
+    });
+
+    LEVELS.forEach((lvl) => {
+      if (map[lvl].length === 0) {
+        map[lvl].push(createEmptyQuestion(lvl));
+      }
+    });
+
+    setExistingQuestionsByLevel(map);
+  };
+
+  // Initialize add mode with clean slate
+  const initializeAddMode = () => {
+    const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
+    
+    LEVELS.forEach((lvl) => {
+      emptyMap[lvl] = [createEmptyQuestion(lvl)];
+    });
+
+    setNewQuestionsByLevel(emptyMap);
+  };
+
+  // Create an empty question template
+  const createEmptyQuestion = (level: Level): Question => ({
+    questionID: "",
+    question: "",
+    questionType: "Input",
+    questionCategory: "",
+    questionLevel: level,
+    timesAnswered: 0,
+  });
+
+  // Get current questions based on mode
+  const getCurrentQuestions = (): Question[] => {
+    const questionsByLevel = mode === "create" ? newQuestionsByLevel : existingQuestionsByLevel;
+    return questionsByLevel[currentTab] || [];
+  };
+
+  // Get current questions by level based on mode
+  const getCurrentQuestionsByLevel = (): QMap => {
+    return mode === "create" ? newQuestionsByLevel : existingQuestionsByLevel;
+  };
+
+  // Update questions based on current mode
+  const updateCurrentQuestions = (level: Level, questions: Question[]) => {
+    if (mode === "create") {
+      setNewQuestionsByLevel(prev => ({ ...prev, [level]: questions }));
+    } else {
+      setExistingQuestionsByLevel(prev => ({ ...prev, [level]: questions }));
+    }
+  };
+
+  // Mode switching functions
+  const switchToCreateMode = () => {
+    setMode("create");
+    initializeAddMode();
+    setCurrentIndex(0);
+    setError("");
+    console.log("🆕 Switched to CREATE mode - sidebar should show only new questions");
+  };
+
+  const switchToEditMode = async () => {
+    setMode("edit");
+    setCurrentIndex(0);
+    setError("");
+    showLoading("fetch", "Switching to Edit Mode...");
+    try {
+      await fetchQuestions();
+    } finally {
+      hideLoading();
+    }
+    console.log("✏️ Switched to EDIT mode - sidebar should show existing questions");
+  };
+
+  // Question management functions
   const onSelectQuestion = (level: Level, idx: number) => {
     setCurrentTab(level);
     setCurrentIndex(idx);
   };
 
   const onAddQuestion = (level: Level) => {
-    if (mode === "edit") setMode("create");
-    const list = questionsByLevel[level];
-    const lastCat = list[list.length - 1]?.questionCategory || "";
-    const newQ: Question = {
-      questionID: "",
-      question: "",
-      questionType: "Input",
-      questionCategory: lastCat,
-      questionLevel: level,
-      timesAnswered: 0,
-    };
-    updateTabQuestions(level, [...list, newQ]);
+    if (mode === "edit") {
+      switchToCreateMode();
+      return;
+    }
+
+    const currentQuestions = newQuestionsByLevel[level];
+    const hasEmptyQuestion = currentQuestions.some(q => !q.question?.trim());
+    
+    if (hasEmptyQuestion) {
+      setError("Please complete the current question before adding a new one.");
+      return;
+    }
+
+    const lastQuestion = currentQuestions[currentQuestions.length - 1];
+    const lastCategory = lastQuestion?.questionCategory || "";
+    
+    const newQuestion = createEmptyQuestion(level);
+    newQuestion.questionCategory = lastCategory;
+    
+    const updatedQuestions = [...currentQuestions, newQuestion];
+    setNewQuestionsByLevel(prev => ({ ...prev, [level]: updatedQuestions }));
+    
     setCurrentTab(level);
-    setCurrentIndex(list.length);
+    setCurrentIndex(updatedQuestions.length - 1);
+    
     if (isEmpty) setError("");
+    console.log(`➕ Added new question to ${level} level in CREATE mode`);
   };
 
   const onDeleteCurrent = async () => {
-    const list = questionsByLevel[currentTab];
-    if (list.length <= 1) return;
-    const toDelete = list[currentIndex];
-    if (toDelete.questionID) await deleteQuestions([toDelete]);
-    const newList = list.filter((_, i) => i !== currentIndex);
-    updateTabQuestions(currentTab, newList);
-    setCurrentIndex((prev) => Math.max(prev - 1, 0));
+    const currentQuestions = getCurrentQuestions();
+    const questionToDelete = currentQuestions[currentIndex];
+    
+    if (mode === "edit" && questionToDelete.questionID) {
+      showLoading("delete", "Deleting Question...");
+      try {
+        await deleteQuestions([questionToDelete]);
+      } catch (error) {
+        console.error("Failed to delete question:", error);
+        setError("Failed to delete question from database");
+        return;
+      } finally {
+        hideLoading();
+      }
+    }
+
+    const newList = currentQuestions.filter((_, i) => i !== currentIndex);
+    
+    if (newList.length === 0) {
+      newList.push(createEmptyQuestion(currentTab));
+    }
+    
+    updateCurrentQuestions(currentTab, newList);
+    
+    const newIndex = Math.min(currentIndex, newList.length - 1);
+    setCurrentIndex(Math.max(newIndex, 0));
+    
+    console.log(`🗑️ Deleted question from ${currentTab} level. Remaining: ${newList.length}`);
   };
 
   const onDeleteAllQuestions = (level: Level) => {
@@ -156,133 +287,152 @@ const SurveyPage: React.FC = () => {
   };
 
   const confirmDeleteAllQuestions = async () => {
-    const list = questionsByLevel[levelToDelete];
-    const toDelete = list.filter((q) => q.questionID);
-    if (toDelete.length) await deleteQuestions(toDelete);
-    updateTabQuestions(levelToDelete, [
-      {
-        questionID: "",
-        question: "",
-        questionType: "Input",
-        questionCategory: "",
-        questionLevel: levelToDelete,
-        timesAnswered: 0,
-      },
-    ]);
+    const currentQuestions = getCurrentQuestions();
+    
+    if (mode === "edit") {
+      const questionsToDelete = currentQuestions.filter(q => q.questionID);
+      if (questionsToDelete.length) {
+        showLoading("delete", `Deleting All ${levelToDelete} Questions...`);
+        try {
+          await deleteQuestions(questionsToDelete);
+        } catch (error) {
+          console.error("Failed to delete questions:", error);
+          setError("Failed to delete questions from database");
+          setShowDeleteDialog(false);
+          return;
+        } finally {
+          hideLoading();
+        }
+      }
+    }
+
+    updateCurrentQuestions(levelToDelete, [createEmptyQuestion(levelToDelete)]);
     setCurrentIndex(0);
     setShowDeleteDialog(false);
   };
 
   const onUpdateQuestion = (field: keyof Question, value: any) => {
-    const list = questionsByLevel[currentTab];
-    const q = list[currentIndex];
+    const currentQuestions = getCurrentQuestions();
+    const question = currentQuestions[currentIndex];
+    
     if (field === "questionLevel" && LEVELS.includes(value as Level)) {
       const newLevel = value as Level;
-      const updated = { ...q, questionLevel: newLevel };
-      const oldList = list.filter((_, idx) => idx !== currentIndex);
-      updateTabQuestions(currentTab, oldList);
-      updateTabQuestions(newLevel, [...questionsByLevel[newLevel], updated]);
+      const updatedQuestion = { ...question, questionLevel: newLevel };
+      
+      const remainingQuestions = currentQuestions.filter((_, idx) => idx !== currentIndex);
+      updateCurrentQuestions(currentTab, remainingQuestions);
+      
+      const targetLevelQuestions = getCurrentQuestionsByLevel()[newLevel];
+      updateCurrentQuestions(newLevel, [...targetLevelQuestions, updatedQuestion]);
+      
       setCurrentTab(newLevel);
-      setCurrentIndex(questionsByLevel[newLevel].length);
+      setCurrentIndex(targetLevelQuestions.length);
     } else {
-      const newList = [...list];
-      if (field === "questionType" && value === "Input" && q.answers) {
-        const { answers, ...rest } = q;
+      const newList = [...currentQuestions];
+      if (field === "questionType" && value === "Input" && question.answers) {
+        const { answers, ...rest } = question;
         newList[currentIndex] = { ...rest, [field]: value };
       } else {
-        newList[currentIndex] = { ...q, [field]: value };
+        newList[currentIndex] = { ...question, [field]: value };
       }
-      updateTabQuestions(currentTab, newList);
+      updateCurrentQuestions(currentTab, newList);
     }
+    
     setError("");
   };
 
-  const completedCount = Object.values(questionsByLevel)
-    .flat()
-    .filter(
-      (q) => q.question.trim() && q.questionCategory && q.questionLevel
-    ).length;
+  // Calculate completed questions based on current mode
+  const getCompletedCount = (): number => {
+    const questionsByLevel = getCurrentQuestionsByLevel();
+    return Object.values(questionsByLevel)
+      .flat()
+      .filter(q => q.question.trim() && q.questionCategory && q.questionLevel)
+      .length;
+  };
 
+  // Submission handlers
   const handleCreateNew = () => {
     showConfirmationDialog(
       "Create Survey Questions",
       "This will create new survey questions. Do you want to continue?",
       async () => {
-        const allQs = LEVELS.flatMap((lvl) => questionsByLevel[lvl]).filter(
-          (q) =>
-            q.question.trim() &&
-            q.questionCategory &&
-            q.questionLevel &&
-            !q.questionID
+        const allNewQuestions = LEVELS.flatMap(lvl => newQuestionsByLevel[lvl]).filter(
+          q => q.question.trim() && q.questionCategory && q.questionLevel && !q.questionID
         );
+        
+        showLoading("create", "Creating Questions...");
         try {
-          await createQuestions(allQs);
-          await fetchQuestions();
+          await createQuestions(allNewQuestions);
+          console.log(`✅ Created ${allNewQuestions.length} new questions`);
+          await switchToEditMode();
         } catch (error) {
           console.error("Creation failed:", error);
+        } finally {
+          hideLoading();
         }
       }
     );
   };
 
   const handleUpdate = async () => {
-    const allQs = LEVELS.flatMap((lvl) => questionsByLevel[lvl]).filter(
-      (q) =>
-        q.question.trim() &&
-        q.questionCategory &&
-        q.questionLevel &&
-        q.questionID
+    const allExistingQuestions = LEVELS.flatMap(lvl => existingQuestionsByLevel[lvl]).filter(
+      q => q.question.trim() && q.questionCategory && q.questionLevel && q.questionID
     );
-  
+
+    showLoading("update", "Updating Questions...");
     try {
-      await updateQuestions(allQs);
+      await updateQuestions(allExistingQuestions);
+      console.log(`✅ Updated ${allExistingQuestions.length} existing questions`);
       await fetchQuestions();
     } catch (error) {
       console.error("Update failed:", error);
+    } finally {
+      hideLoading();
     }
   };
-  
 
-  const switchToCreateMode = () => {
-    setMode("create");
-    const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
-    LEVELS.forEach((lvl) => {
-      emptyMap[lvl] = [
-        {
-          questionID: "",
-          question: "",
-          questionType: "Input",
-          questionCategory: "",
-          questionLevel: lvl,
-          timesAnswered: 0,
-        },
-      ];
-    });
-    setQuestionsByLevel(emptyMap);
-    setCurrentIndex(0);
-    setError("");
-  };
-  
-
-  const switchToEditMode = async () => {
-    setMode("edit");
-    await fetchQuestions();
-  };
-
+  // Show loading or empty state
   if (!showUIImmediately) {
-    return <div>Loading Survey Builder...</div>;
+    return (
+      <LoadingPopup
+        show={true}
+        variant="fetch"
+        message="Initializing Survey Builder..."
+      />
+    );
+  }
+
+  // Show empty state only when in edit mode and no questions exist
+  if (mode === "edit" && isEmpty && existingQuestions.length === 0) {
+    return (
+      <>
+        <AdminEmptyState
+          onAddQuestion={(level) => {
+            switchToCreateMode();
+            setTimeout(() => onAddQuestion(level), 0);
+          }}
+          isEmpty={true}
+          error={error}
+        />
+        <LoadingPopup
+          show={loadingState.show}
+          variant={loadingState.variant}
+          message={loadingState.message}
+        />
+      </>
+    );
   }
 
   return (
     <>
       <SurveyLayout
-        questions={questionsByLevel[currentTab]}
-        questionsByLevel={questionsByLevel}
+        questions={getCurrentQuestions()}
+        questionsByLevel={getCurrentQuestionsByLevel()}
         currentIndex={currentIndex}
         currentLevel={currentTab}
-        completedCount={completedCount}
+        completedCount={getCompletedCount()}
         showPreview={showPreview}
-        isSubmitting={isLoading}
+        isSubmitting={loadingState.show || isLoading}
         error={error}
         mode={mode}
         onErrorDismiss={() => setError("")}
@@ -295,12 +445,8 @@ const SurveyPage: React.FC = () => {
         onDeleteCurrent={onDeleteCurrent}
         onDeleteAllQuestions={onDeleteAllQuestions}
         onUpdateQuestion={onUpdateQuestion}
-        onPrev={() => setCurrentIndex((i) => Math.max(i - 1, 0))}
-        onNext={() =>
-          setCurrentIndex((i) =>
-            Math.min(i + 1, questionsByLevel[currentTab].length - 1)
-          )
-        }
+        onPrev={() => setCurrentIndex(i => Math.max(i - 1, 0))}
+        onNext={() => setCurrentIndex(i => Math.min(i + 1, getCurrentQuestions().length - 1))}
         onCreateNew={handleCreateNew}
         onUpdate={handleUpdate}
         onSwitchToCreate={switchToCreateMode}
@@ -309,7 +455,14 @@ const SurveyPage: React.FC = () => {
         onClosePreview={() => setShowPreview(false)}
         onLogout={() => navigate("/")}
         formTitle="Sanskrit Survey Builder"
-        formDescription="Add or edit questions for each level."
+        formDescription={mode === "create" ? "Create new questions for each level." : "Edit existing questions."}
+      />
+
+      {/* Loading Popup */}
+      <LoadingPopup
+        show={loadingState.show}
+        variant={loadingState.variant}
+        message={loadingState.message}
       />
 
       {/* Delete Confirmation */}
@@ -320,18 +473,17 @@ const SurveyPage: React.FC = () => {
               Delete All Questions
             </h2>
             <p className="text-gray-700 mb-6">
-              Are you sure you want to delete all{" "}
-              <strong>{levelToDelete}</strong> questions?
+              Are you sure you want to delete all <strong>{levelToDelete}</strong> questions?
             </p>
             <div className="flex justify-center gap-4">
               <button
-                className="bg-red-600 text-white px-6 py-2 rounded-lg"
+                className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
                 onClick={confirmDeleteAllQuestions}
               >
                 Yes, Delete All
               </button>
               <button
-                className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg"
+                className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors"
                 onClick={() => setShowDeleteDialog(false)}
               >
                 Cancel
