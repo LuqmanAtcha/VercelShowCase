@@ -1,3 +1,4 @@
+// src/components/admin/QuestionCard.tsx
 import React, { useState } from "react";
 import { X, Plus, Check } from "lucide-react";
 import { Question } from "../../types/types";
@@ -78,177 +79,219 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     onUpdate("answers", updated);
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setShowDeleteDialog(false);
+    onDelete();
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteDialog(false);
+  };
+
   const isCategorySelected = () => !!question.questionCategory?.trim();
   const nearLimit = (question.question?.length || 0) > 450;
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-2xl font-bold text-gray-900">
-          Question {index + 1}
-        </h3>
-        <button
-          onClick={() => setShowDeleteDialog(true)}
-          disabled={isFirst}
-          className={`p-2 rounded-lg transition-colors ${
-            isFirst
-              ? "opacity-50 cursor-not-allowed text-gray-400"
-              : "text-red-500 hover:bg-red-100 hover:text-red-600"
+    <>
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-gray-900">
+            Question {index + 1}
+          </h3>
+          <button
+            onClick={handleDeleteClick}
+            className="p-2 rounded-lg transition-colors text-red-500 hover:bg-red-100 hover:text-red-600"
+            title="Delete this question"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Selects */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-900">
+              Category *
+            </label>
+            <select
+              value={question.questionCategory || ""}
+              onChange={(e) => onUpdate("questionCategory", e.target.value)}
+              className="w-full border-2 rounded-xl px-4 py-3 bg-white"
+            >
+              <option value="">Choose a category</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-900">
+              Level *
+            </label>
+            <select
+              value={question.questionLevel || currentTabLevel}
+              onChange={(e) => onUpdate("questionLevel", e.target.value)}
+              className="w-full border-2 rounded-xl px-4 py-3 bg-white"
+            >
+              <option value="">Select level</option>
+              {levels.map((lvl) => (
+                <option key={lvl} value={lvl}>
+                  {lvl}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-900">
+              Question Type *
+            </label>
+            <select
+              value={question.questionType || "Input"}
+              onChange={(e) => onUpdate("questionType", e.target.value)}
+              className="w-full border-2 rounded-xl px-4 py-3 bg-white"
+            >
+              {questionTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type === "Input" ? "Text" : "Multiple Choice"}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Question Text + MCQ Right Side */}
+        <div
+          className={`flex flex-col ${
+            question.questionType === "Mcq" ? "sm:flex-row gap-4" : ""
           }`}
         >
-          <X size={20} />
-        </button>
-      </div>
-
-      {/* Selects */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-900">
-            Category *
-          </label>
-          <select
-            value={question.questionCategory || ""}
-            onChange={(e) => onUpdate("questionCategory", e.target.value)}
-            className="w-full border-2 rounded-xl px-4 py-3 bg-white"
-          >
-            <option value="">Choose a category</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-900">
-            Level *
-          </label>
-          <select
-            value={question.questionLevel || currentTabLevel}
-            onChange={(e) => onUpdate("questionLevel", e.target.value)}
-            className="w-full border-2 rounded-xl px-4 py-3 bg-white"
-          >
-            <option value="">Select level</option>
-            {levels.map((lvl) => (
-              <option key={lvl} value={lvl}>
-                {lvl}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-gray-900">
-            Question Type *
-          </label>
-          <select
-            value={question.questionType || "Input"}
-            onChange={(e) => onUpdate("questionType", e.target.value)}
-            className="w-full border-2 rounded-xl px-4 py-3 bg-white"
-          >
-            {questionTypes.map((type) => (
-              <option key={type} value={type}>
-                {type === "Input" ? "Text" : "Multiple Choice"}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Question Text + MCQ Right Side */}
-      <div
-        className={`flex flex-col ${
-          question.questionType === "Mcq" ? "sm:flex-row gap-4" : ""
-        }`}
-      >
-        {/* Left: Question Text */}
-        <div className="flex-1 space-y-2">
-          <label className="block text-sm font-semibold text-gray-900">
-            Question Text *
-          </label>
-          <div className="relative">
-            <textarea
-              rows={question.questionType === "Mcq" ? 6 : 4}
-              value={question.question || ""}
-              onChange={(e) => onUpdate("question", e.target.value)}
-              placeholder={
-                isCategorySelected()
-                  ? "Enter your question..."
-                  : "Select a category first"
-              }
-              disabled={!isCategorySelected()}
-              maxLength={500}
-              className={`w-full border-2 rounded-xl p-4 resize-none transition-colors ${
-                !isCategorySelected() ? "bg-gray-100 text-gray-500" : "bg-white"
-              }`}
-            />
-            <span
-              className={`absolute bottom-2 right-3 text-xs px-2 py-1 rounded-full ${
-                nearLimit
-                  ? "bg-red-100 text-red-600"
-                  : "bg-gray-100 text-gray-600"
-              }`}
-            >
-              {question.question?.length || 0}/500
-            </span>
-          </div>
-        </div>
-
-        {/* Right: MCQ Options */}
-        {question.questionType === "Mcq" && (
-          <div className="flex-1 space-y-2 mt-6 sm:mt-0">
-            <div className="text-sm font-semibold text-gray-900 mb-1">
-              MCQ Options <span className="text-red-500">*</span>
-              <span className="ml-2 text-xs text-gray-500">
-                (Select one correct)
+          {/* Left: Question Text */}
+          <div className="flex-1 space-y-2">
+            <label className="block text-sm font-semibold text-gray-900">
+              Question Text *
+            </label>
+            <div className="relative">
+              <textarea
+                rows={question.questionType === "Mcq" ? 6 : 4}
+                value={question.question || ""}
+                onChange={(e) => onUpdate("question", e.target.value)}
+                placeholder={
+                  isCategorySelected()
+                    ? "Enter your question..."
+                    : "Select a category first"
+                }
+                disabled={!isCategorySelected()}
+                maxLength={500}
+                className={`w-full border-2 rounded-xl p-4 resize-none transition-colors ${
+                  !isCategorySelected() ? "bg-gray-100 text-gray-500" : "bg-white"
+                }`}
+              />
+              <span
+                className={`absolute bottom-2 right-3 text-xs px-2 py-1 rounded-full ${
+                  nearLimit
+                    ? "bg-red-100 text-red-600"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {question.question?.length || 0}/500
               </span>
             </div>
-            {mcqOptions.map((opt, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <input
-                  type="text"
-                  value={opt.answer}
-                  onChange={(e) => handleMcqOptionChange(i, e.target.value)}
-                  className="flex-1 border-2 rounded-lg px-3 py-2"
-                  placeholder={`Option ${i + 1}`}
-                />
-                <button
-                  onClick={() => handleSetCorrectOption(i)}
-                  className={`w-6 h-6 flex items-center justify-center rounded-full ${
-                    opt.isCorrect
-                      ? "bg-green-600 text-white"
-                      : "bg-gray-200 hover:bg-gray-300"
-                  }`}
-                >
-                  {opt.isCorrect && <Check size={14} />}
-                </button>
-              </div>
-            ))}
           </div>
-        )}
+
+          {/* Right: MCQ Options */}
+          {question.questionType === "Mcq" && (
+            <div className="flex-1 space-y-2 mt-6 sm:mt-0">
+              <div className="text-sm font-semibold text-gray-900 mb-1">
+                MCQ Options <span className="text-red-500">*</span>
+                <span className="ml-2 text-xs text-gray-500">
+                  (Select one correct)
+                </span>
+              </div>
+              {mcqOptions.map((opt, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={opt.answer}
+                    onChange={(e) => handleMcqOptionChange(i, e.target.value)}
+                    className="flex-1 border-2 rounded-lg px-3 py-2"
+                    placeholder={`Option ${i + 1}`}
+                  />
+                  <button
+                    onClick={() => handleSetCorrectOption(i)}
+                    className={`w-6 h-6 flex items-center justify-center rounded-full ${
+                      opt.isCorrect
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-200 hover:bg-gray-300"
+                    }`}
+                  >
+                    {opt.isCorrect && <Check size={14} />}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer Buttons */}
+        <div className="flex justify-between pt-4 border-t">
+          <button
+            onClick={onPrev}
+            disabled={isFirst}
+            className="px-4 py-2 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Previous
+          </button>
+
+          <button
+            onClick={onNext}
+            disabled={isLast}
+            className="px-4 py-2 text-sm rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+          </button>
+        </div>
       </div>
 
-      {/* Footer Buttons */}
-      <div className="flex justify-between pt-4 border-t">
-        <button
-          onClick={onPrev}
-          disabled={isFirst}
-          className="px-4 py-2 text-sm rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"
-        >
-          Previous
-        </button>
-
-        <button
-          onClick={onNext}
-          disabled={isLast}
-          className="px-4 py-2 text-sm rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
-    </div>
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm text-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <X className="w-6 h-6 text-red-600" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">
+              Delete Question?
+            </h2>
+            <p className="text-gray-600 mb-6 text-sm">
+              Are you sure you want to delete this question? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelDelete}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
