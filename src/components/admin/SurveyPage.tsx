@@ -1,5 +1,5 @@
 // src/components/admin/SurveyPage.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminSurveyApi } from "../hooks/useAdminSurveyApi";
 import SurveyLayout from "./SurveyLayout";
@@ -28,6 +28,7 @@ const SurveyPage: React.FC = () => {
     Intermediate: [],
     Advanced: [],
   });
+  const hasFetchedOnce = useRef(false); 
   const [currentTab, setCurrentTab] = useState<Level>("Beginner");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [mode, setMode] = useState<"create" | "edit">("edit");
@@ -60,25 +61,31 @@ const SurveyPage: React.FC = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (!showUIImmediately) {
-      const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
-      LEVELS.forEach((lvl) => {
-        emptyMap[lvl] = [
-          {
-            questionID: "",
-            question: "",
-            questionType: "Input",
-            questionCategory: "",
-            questionLevel: lvl,
-            timesAnswered: 0,
-          },
-        ];
-      });
-      setQuestionsByLevel(emptyMap);
-      setShowUIImmediately(true);
-    }
+  if (!showUIImmediately) {
+    const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
+    LEVELS.forEach((lvl) => {
+      emptyMap[lvl] = [
+        {
+          questionID: "",
+          question: "",
+          questionType: "Input",
+          questionCategory: "",
+          questionLevel: lvl,
+          timesAnswered: 0,
+        },
+      ];
+    });
+    setQuestionsByLevel(emptyMap);
+    setShowUIImmediately(true);
+  }
+
+  // ✅ Prevent multiple fetches
+  if (showUIImmediately && !hasFetchedOnce.current) {
+    hasFetchedOnce.current = true;
     fetchQuestions();
-  }, [fetchQuestions, showUIImmediately]);
+  }
+}, [fetchQuestions, showUIImmediately]);
+
 
   useEffect(() => {
     if (!showUIImmediately) return;
@@ -218,53 +225,44 @@ const SurveyPage: React.FC = () => {
     );
   };
 
-  const handleUpdate = () => {
-    showConfirmationDialog(
-      "Update Survey Questions",
-      "This will update the existing survey. Do you want to continue?",
-      async () => {
-        const allQs = LEVELS.flatMap((lvl) => questionsByLevel[lvl]).filter(
-          (q) =>
-            q.question.trim() &&
-            q.questionCategory &&
-            q.questionLevel &&
-            q.questionID
-        );
-        try {
-          await updateQuestions(allQs);
-          await fetchQuestions();
-        } catch (error) {
-          console.error("Update failed:", error);
-        }
-      }
+  const handleUpdate = async () => {
+    const allQs = LEVELS.flatMap((lvl) => questionsByLevel[lvl]).filter(
+      (q) =>
+        q.question.trim() &&
+        q.questionCategory &&
+        q.questionLevel &&
+        q.questionID
     );
+  
+    try {
+      await updateQuestions(allQs);
+      await fetchQuestions();
+    } catch (error) {
+      console.error("Update failed:", error);
+    }
   };
+  
 
   const switchToCreateMode = () => {
-    showConfirmationDialog(
-      "Switch to Create Mode",
-      "This will clear current questions. Do you want to continue?",
-      () => {
-        setMode("create");
-        const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
-        LEVELS.forEach((lvl) => {
-          emptyMap[lvl] = [
-            {
-              questionID: "",
-              question: "",
-              questionType: "Input",
-              questionCategory: "",
-              questionLevel: lvl,
-              timesAnswered: 0,
-            },
-          ];
-        });
-        setQuestionsByLevel(emptyMap);
-        setCurrentIndex(0);
-        setError("");
-      }
-    );
+    setMode("create");
+    const emptyMap: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
+    LEVELS.forEach((lvl) => {
+      emptyMap[lvl] = [
+        {
+          questionID: "",
+          question: "",
+          questionType: "Input",
+          questionCategory: "",
+          questionLevel: lvl,
+          timesAnswered: 0,
+        },
+      ];
+    });
+    setQuestionsByLevel(emptyMap);
+    setCurrentIndex(0);
+    setError("");
   };
+  
 
   const switchToEditMode = async () => {
     setMode("edit");

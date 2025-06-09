@@ -109,33 +109,8 @@ function SurveyLayout({
         {/* Main Content */}
         <main className="flex-1 flex flex-col items-center">
           <section className="w-full max-w-4xl xl:max-w-12xl">
-            {/* Title + Level Badge */}
-            <div className="bg-white rounded-2xl shadow border border-gray-100 px-10 py-7 mb-7">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-2xl font-extrabold text-gray-900 mb-1 tracking-tight">
-                    {formTitle}
-                  </h1>
-                  <p className="text-gray-600 text-base">{formDescription}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-gray-500 mb-1">
-                    Current Level
-                  </div>
-                  <div
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow ${
-                      currentLevel === "Beginner"
-                        ? "bg-green-100 text-green-700"
-                        : currentLevel === "Intermediate"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {currentLevel}
-                  </div>
-                </div>
-              </div>
-            </div>
+            
+            
 
             {/* Question Panel */}
             <div className="flex-1 min-h-0">

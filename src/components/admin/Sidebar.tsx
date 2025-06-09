@@ -84,10 +84,7 @@ export function Sidebar({
         <button
           onClick={() => {
             if (
-              levelQuestions.length > 0 &&
-              window.confirm(
-                `Delete all ${currentLevel} questions? This cannot be undone.`
-              )
+              levelQuestions.length > 0 
             ) {
               onDeleteAll(currentLevel);
             }
