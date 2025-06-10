@@ -453,14 +453,29 @@ const SurveyPage: React.FC = () => {
   };
 
   // Submission handlers
-  const handleCreateNew = () => {
-    showConfirmationDialog(
-      "Create Survey Questions",
-      "This will create new survey questions. Do you want to continue?",
-      async () => {
-        const allNewQuestions = LEVELS.flatMap(lvl => newQuestionsByLevel[lvl]).filter(
-          q => q.question.trim() && q.questionCategory && q.questionLevel && !q.questionID
-        );
+const handleCreateNew = () => {
+  // First clean up each level
+  for (const level of LEVELS) {
+    const questions = [...newQuestionsByLevel[level]];
+    const validQuestions = questions.filter(q => 
+      q.question.trim() && q.questionCategory && q.questionLevel
+    );
+    
+    // Update with valid questions or add empty one if all removed
+    if (validQuestions.length === 0) {
+      updateCurrentQuestions(level, [createEmptyQuestion(level)]);
+    } else {
+      updateCurrentQuestions(level, validQuestions);
+    }
+  }
+
+  showConfirmationDialog(
+    "Create Survey Questions",
+    "This will create new survey questions. Do you want to continue?",
+    async () => {
+      const allNewQuestions = LEVELS.flatMap(lvl => newQuestionsByLevel[lvl]).filter(
+        q => q.question.trim() && q.questionCategory && q.questionLevel && !q.questionID
+      );
         
         showLoading("create", "Creating Questions...");
         try {
@@ -476,33 +491,62 @@ const SurveyPage: React.FC = () => {
     );
   };
 
-  // ⭐ NEW: Smart update logic - single PUT for 1 question, bulk for multiple
-  const handleUpdateModifiedQuestions = async () => {
-    if (modifiedQuestions.size === 0) {
-      setError("No questions have been modified.");
-      return;
-    }
+// ⭐ NEW: Smart update logic - single PUT for 1 question, bulk for multiple
+const handleUpdateModifiedQuestions = async () => {
+  if (modifiedQuestions.size === 0) {
+    setError("No questions have been modified.");
+    return;
+  }
 
-    const questionsToUpdate: Question[] = [];
+  // First, clean up each level by removing empty questions
+  let emptyQuestionsRemoved = 0;
+  
+  for (const level of LEVELS) {
+    const questions = [...existingQuestionsByLevel[level]];
+    const validQuestions = questions.filter(q => 
+      q.question.trim() && q.questionCategory && q.questionLevel
+    );
     
-    // Collect all modified questions
-    for (const level of LEVELS) {
-      for (const question of existingQuestionsByLevel[level]) {
-        if (question.questionID && modifiedQuestions.has(question.questionID)) {
-          questionsToUpdate.push(question);
-        }
+    // Count removed questions
+    emptyQuestionsRemoved += questions.length - validQuestions.length;
+    
+    // Update the level with only valid questions, or add an empty one if all were removed
+    if (validQuestions.length === 0) {
+      updateCurrentQuestions(level, [createEmptyQuestion(level)]);
+    } else {
+      updateCurrentQuestions(level, validQuestions);
+    }
+  }
+  
+  // Now collect only valid modified questions that need to be updated
+  const questionsToUpdate: Question[] = [];
+  
+  for (const level of LEVELS) {
+    for (const question of existingQuestionsByLevel[level]) {
+      if (question.questionID && 
+          modifiedQuestions.has(question.questionID) &&
+          question.question.trim() && 
+          question.questionCategory && 
+          question.questionLevel) {
+        questionsToUpdate.push(question);
       }
     }
+  }
 
-    if (questionsToUpdate.length === 0) {
-      setError("No valid modified questions found.");
-      return;
-    }
+  if (questionsToUpdate.length === 0) {
+    setError("No valid modified questions found.");
+    return;
+  }
 
-    console.log(`🔍 Found ${questionsToUpdate.length} modified questions to update`);
+  // Show removal notification if questions were removed
+  if (emptyQuestionsRemoved > 0) {
+    console.log(`🧹 Removed ${emptyQuestionsRemoved} empty/untitled questions`);
+  }
 
-    // ⭐ SMART LOGIC: Choose update method based on count
-    if (questionsToUpdate.length === 1) {
+  console.log(`🔍 Found ${questionsToUpdate.length} valid modified questions to update`);
+
+  // Rest of the function remains the same - update questions with single or bulk API call
+  if (questionsToUpdate.length === 1) {
       // Use single question update for better performance and clearer logging
       const singleQuestion = questionsToUpdate[0];
       console.log(`📝 Using SINGLE PUT for 1 question: ${singleQuestion.questionID}`);
