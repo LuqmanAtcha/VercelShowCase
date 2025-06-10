@@ -99,7 +99,7 @@ export async function submitAllAnswers(
   // Transform to the correct format expected by the backend
   // Backend expects _id format, so we need to map questionID back to _id
   const payload = {
-    questions: answers.map((a) => ({ _id: a.questionID })), // Use _id format for backend
+    questions: answers.map((a) => ({ questionID: a.questionID })), // Use _id format for backend
     answers: answers.map((a) => ({ answer: a.answerText })),
   };
 
@@ -136,7 +136,7 @@ export async function submitSingleAnswer(
   console.log("📤 Submitting single answer for question:", questionID);
 
   const payload = {
-    questions: [{ _id: questionID }], // Use _id format for backend
+    questions: [{ questionID: questionID }], // Use _id format for backend
     answers: [{ answer: answer }],
   };
 
