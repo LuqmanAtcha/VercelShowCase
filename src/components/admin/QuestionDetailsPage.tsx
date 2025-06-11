@@ -1,8 +1,9 @@
-// Enhanced QuestionDetailsPage.tsx - Fixed ID handling and better answer viewing
+// Updated QuestionDetailsPage.tsx - Using updateQuestionWithAnswers method
 import React, { useEffect, useState, useMemo } from "react";
 import {
   fetchAnswersByQuestionId,
   fetchAllQuestionsAdmin,
+  updateQuestionWithAnswers, // Import the NEW method
 } from "../api/adminSurveyApi";
 import { Bar, Pie } from "react-chartjs-2";
 import {
@@ -50,11 +51,15 @@ const QuestionDetailPage: React.FC = () => {
   const [question, setQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"chart" | "list" | "stats">("chart");
+  const [viewMode, setViewMode] = useState<"chart" | "list" | "stats">("list");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"frequency" | "length" | "alphabetical">(
     "frequency"
   );
+  // State for tracking answer updates
+  const [updatingAnswers, setUpdatingAnswers] = useState<Set<string>>(new Set());
+  const [updateError, setUpdateError] = useState<string>("");
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -114,6 +119,57 @@ const QuestionDetailPage: React.FC = () => {
 
     fetchData();
   }, [id, navigate]);
+
+  // NEW: Function to handle answer validation using the new API method
+  const handleUpdateAnswerCorrectness = async (answerText: string, isCorrect: boolean) => {
+    if (!question) return;
+
+    setUpdatingAnswers(prev => new Set(prev).add(answerText));
+    setUpdateError("");
+
+    try {
+      // Find the answer in the question's answers array
+      const answerIndex = question.answers?.findIndex(a => a.answer === answerText);
+      
+      if (answerIndex === undefined || answerIndex === -1) {
+        throw new Error("Answer not found in question");
+      }
+
+      // Create updated question with only the specific answer's isCorrect field changed
+      const updatedQuestion: Question = {
+        ...question,
+        answers: question.answers!.map((answer, index) => 
+          index === answerIndex 
+            ? { ...answer, isCorrect } 
+            : answer
+        )
+      };
+
+      console.log("🚀 About to update question with answers:", {
+        questionID: updatedQuestion.questionID,
+        answerText: answerText.substring(0, 30) + "...",
+        newIsCorrect: isCorrect,
+        totalAnswers: updatedQuestion.answers?.length,
+      });
+
+      // Use NEW updateQuestionWithAnswers method that includes answers array
+      await updateQuestionWithAnswers(updatedQuestion);
+
+      // Update local state
+      setQuestion(updatedQuestion);
+
+      console.log(`✅ Answer "${answerText}" marked as ${isCorrect ? 'correct' : 'incorrect'}`);
+    } catch (error: any) {
+      console.error('❌ Failed to update answer correctness:', error);
+      setUpdateError(`Failed to update answer: ${error.message}`);
+    } finally {
+      setUpdatingAnswers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(answerText);
+        return newSet;
+      });
+    }
+  };
 
   // Calculate answer statistics
   const answerStats: AnswerStats = useMemo(() => {
@@ -476,6 +532,26 @@ const QuestionDetailPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Update Error Display */}
+        {updateError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-red-700 text-sm font-medium">{updateError}</p>
+              <button
+                onClick={() => setUpdateError("")}
+                className="ml-auto text-red-600 hover:text-red-800"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* View Controls */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -549,6 +625,11 @@ const QuestionDetailPage: React.FC = () => {
               <h3 className="text-lg font-bold">
                 All Responses ({filteredAnswers.length})
               </h3>
+              {question.questionType === "Input" && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Click the green ✓ or red ✗ buttons to validate answers
+                </p>
+              )}
             </div>
             <div className="max-h-96 overflow-y-auto">
               {filteredAnswers.length === 0 ? (
@@ -557,26 +638,113 @@ const QuestionDetailPage: React.FC = () => {
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-200">
-                  {filteredAnswers.map(([answer, count], idx) => (
-                    <li
-                      key={idx}
-                      className="p-4 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-gray-900 break-words">{answer}</p>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Length: {answer.length} characters
-                          </p>
+                  {filteredAnswers.map(([answer, count], idx) => {
+                    const isUpdating = updatingAnswers.has(answer);
+                    const questionAnswer = question.answers?.find(a => a.answer === answer);
+                    const isCorrect = questionAnswer?.isCorrect || false;
+                    
+                    return (
+                      <li
+                        key={idx}
+                        className="p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-900 break-words">{answer}</p>
+                            <div className="flex items-center gap-4 mt-2">
+                              <p className="text-sm text-gray-500">
+                                Length: {answer.length} characters
+                              </p>
+                              
+                              {/* NEW: Display rank and score if available */}
+                              {questionAnswer && (
+                                <div className="flex items-center gap-3">
+                                  {questionAnswer.rank !== undefined && questionAnswer.rank !== null && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-gray-500">Rank:</span>
+                                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                        #{questionAnswer.rank}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {questionAnswer.score !== undefined && questionAnswer.score !== null && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-xs text-gray-500">Score:</span>
+                                      <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                        {questionAnswer.score}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {question.questionType === "Input" && (
+                                <div className="flex items-center gap-2">
+                                  {isCorrect ? (
+                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      Correct
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                                      Not Validated
+                                    </span>
+                                  )}
+                                  
+                                  <div className="flex gap-1">
+                                    <button
+                                      onClick={() => handleUpdateAnswerCorrectness(answer, true)}
+                                      disabled={isUpdating}
+                                      className={`p-1.5 rounded-lg transition-all ${
+                                        isCorrect
+                                          ? "bg-green-500 text-white"
+                                          : "bg-gray-100 text-green-600 hover:bg-green-100"
+                                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                      title="Mark as correct"
+                                    >
+                                      {isUpdating ? (
+                                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                      ) : (
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      )}
+                                    </button>
+                                    
+                                    <button
+                                      onClick={() => handleUpdateAnswerCorrectness(answer, false)}
+                                      disabled={isUpdating}
+                                      className={`p-1.5 rounded-lg transition-all ${
+                                        !isCorrect
+                                          ? "bg-red-500 text-white"
+                                          : "bg-gray-100 text-red-600 hover:bg-red-100"
+                                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                      title="Mark as incorrect"
+                                    >
+                                      {isUpdating ? (
+                                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                      ) : (
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="ml-4 flex-shrink-0">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                              {count} {count === 1 ? "response" : "responses"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="ml-4 flex-shrink-0">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                            {count} {count === 1 ? "response" : "responses"}
-                          </span>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
