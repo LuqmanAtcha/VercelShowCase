@@ -1,4 +1,4 @@
-// Updated adminSurveyApi.ts - Added single question update function
+// Updated adminSurveyApi.ts - Added updateQuestionWithAnswers method
 import { API_BASE, defaultHeaders } from "./config";
 import { Question, Answer } from "../../types/types";
 
@@ -40,7 +40,7 @@ export async function fetchAllQuestionsAdmin(): Promise<Question[]> {
         ? q.answers.map((a: any) => ({
             answerID: a._id || a.answerID, // Handle both _id and answerID from backend
             answer: a.answer,
-            isCorrect: a.isCorrect,
+            isCorrect: a.isCorrect || false, // Default to false
             responseCount: a.responseCount,
             rank: a.rank,
             score: a.score,
@@ -98,7 +98,7 @@ export async function deleteAllQuestionsAdmin(ids: string[]): Promise<void> {
   }
 }
 
-// NEW: Single question update function
+// EXISTING: Single question update function (without answers)
 export async function updateSingleQuestion(question: Question): Promise<void> {
   // Build the payload with only the single question
   const questionData: any = {
@@ -144,6 +144,65 @@ export async function updateSingleQuestion(question: Question): Promise<void> {
   }
 
   console.log("✅ Single question updated successfully");
+}
+
+// NEW: Question update function WITH answers (for answer validation)
+export async function updateQuestionWithAnswers(question: Question): Promise<void> {
+  // Build the payload with the question AND answers array
+  const questionData: any = {
+    questionID: question.questionID,
+    question: question.question,
+    questionType: question.questionType,
+    questionCategory: question.questionCategory,
+    questionLevel: question.questionLevel,
+  };
+
+  // ALWAYS include answers array for answer validation functionality
+  if (question.answers && question.answers.length > 0) {
+    questionData.answers = question.answers.map((a) => ({
+      answerID: a.answerID,
+      answer: a.answer,
+      isCorrect: a.isCorrect, // This is the field we're updating
+      responseCount: a.responseCount,
+      // Only include rank and score if they exist in the answer object
+      ...(a.rank !== undefined && { rank: a.rank }),
+      ...(a.score !== undefined && { score: a.score }),
+    }));
+  } else {
+    // Include empty answers array if no answers
+    questionData.answers = [];
+  }
+
+  const payload = {
+    questions: [questionData],
+  };
+
+  console.log("🚀 Question with answers PUT payload:", JSON.stringify(payload, null, 2));
+  console.log("🔍 Updating question with answers:", {
+    questionID: question.questionID,
+    question: question.question.substring(0, 30) + "...",
+    type: question.questionType,
+    answersCount: question.answers?.length || 0,
+    answersWithCorrectness: question.answers?.map((a, i) => ({
+      index: i,
+      answer: a.answer.substring(0, 20) + "...",
+      isCorrect: a.isCorrect,
+    })) || [],
+  });
+
+  const res = await fetch(`${API_BASE}/api/v1/admin/survey`, {
+    method: "PUT",
+    headers: defaultHeaders,
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error("🚨 Question with answers PUT request failed:", res.status, errorText);
+    throw new Error(`Failed to update question with answers (${res.status}): ${errorText}`);
+  }
+
+  console.log("✅ Question with answers updated successfully");
 }
 
 // KEPT: Batch update function for existing bulk operations
@@ -280,7 +339,7 @@ export async function fetchAllQuestionsAndAnswersAdmin(): Promise<{
             answerID: ans._id || ans.answerID, // Handle both _id and answerID
             answer: ans.answer || "",
             responseCount: ans.responseCount || 0,
-            isCorrect: ans.isCorrect || false,
+            isCorrect: ans.isCorrect || false, // Default to false
           }))
         : [],
       timeStamp: q.timeStamp,
