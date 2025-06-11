@@ -1,7 +1,8 @@
+// Enhanced ResponsesPage.tsx - Added rank and score display in validation modal
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Question } from "../../types/types";
-import { fetchAllQuestionsAndAnswersAdmin } from "../api/adminSurveyApi";
+import { fetchAllQuestionsAndAnswersAdmin, updateQuestionWithAnswers } from "../api/adminSurveyApi";
 import { useAnalyticsData } from "../hooks/useAnalyticsData";
 
 const ResponsesPage: React.FC = () => {
@@ -16,6 +17,11 @@ const ResponsesPage: React.FC = () => {
   const [filterLevel, setFilterLevel] = useState("");
   const [sortField, setSortField] = useState<string>("");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  
+  // State for answer validation modal
+  const [showAnswerModal, setShowAnswerModal] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+  const [updatingAnswers, setUpdatingAnswers] = useState<Set<string>>(new Set());
 
   const navigate = useNavigate();
 
@@ -71,6 +77,59 @@ const ResponsesPage: React.FC = () => {
   }, [navigate]);
 
   const analyticsData = useAnalyticsData(questions);
+
+  // Function to handle answer validation button click
+  const handleValidateAnswers = (question: Question) => {
+    // Only allow validation for Input type questions that have answers
+    if (question.questionType === "Input" && question.answers && question.answers.length > 0) {
+      setSelectedQuestion(question);
+      setShowAnswerModal(true);
+    }
+  };
+
+  // Function to update answer isCorrect status
+  const handleUpdateAnswerCorrectness = async (answerIndex: number, isCorrect: boolean) => {
+    if (!selectedQuestion) return;
+
+    const answerKey = `${selectedQuestion.questionID}-${answerIndex}`;
+    setUpdatingAnswers(prev => new Set(prev).add(answerKey));
+
+    try {
+      // Create a copy of the question with only the specific answer's isCorrect field updated
+      const updatedQuestion: Question = {
+        ...selectedQuestion,
+        answers: selectedQuestion.answers!.map((answer, index) => 
+          index === answerIndex 
+            ? { ...answer, isCorrect } 
+            : answer
+        )
+      };
+
+      // Use existing updateQuestionWithAnswers method
+      await updateQuestionWithAnswers(updatedQuestion);
+
+      // Update local state
+      setQuestions(prevQuestions => 
+        prevQuestions.map(q => 
+          q.questionID === selectedQuestion.questionID ? updatedQuestion : q
+        )
+      );
+
+      // Update selected question for modal
+      setSelectedQuestion(updatedQuestion);
+
+      console.log(`✅ Answer ${answerIndex + 1} marked as ${isCorrect ? 'correct' : 'incorrect'}`);
+    } catch (error: any) {
+      console.error('❌ Failed to update answer correctness:', error);
+      setError(`Failed to update answer: ${error.message}`);
+    } finally {
+      setUpdatingAnswers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(answerKey);
+        return newSet;
+      });
+    }
+  };
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -471,12 +530,13 @@ const ResponsesPage: React.FC = () => {
                       <SortIndicator field="total" />
                     </div>
                   </th>
+                  <th className="px-3 py-2 font-semibold">Validate</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredAndSortedQuestions.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-8 text-gray-500">
+                    <td colSpan={9} className="text-center py-8 text-gray-500">
                       No questions found. Questions need to be added to see
                       analytics.
                     </td>
@@ -572,6 +632,18 @@ const ResponsesPage: React.FC = () => {
                         <td className="px-3 py-2 font-medium text-gray-700">
                           {totalQ}
                         </td>
+                        <td className="px-3 py-2">
+                          {q.questionType === "Input" && q.answers && q.answers.length > 0 ? (
+                            <button
+                              onClick={() => handleValidateAnswers(q)}
+                              className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium hover:bg-green-200 transition-colors"
+                            >
+                              ✓ Validate
+                            </button>
+                          ) : (
+                            <span className="text-gray-400 text-xs">N/A</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })
@@ -581,6 +653,179 @@ const ResponsesPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Answer Validation Modal with Rank and Score Display */}
+      {showAnswerModal && selectedQuestion && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900">Validate Answers</h2>
+              <button
+                onClick={() => setShowAnswerModal(false)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Question:</h3>
+              <p className="text-gray-700">{selectedQuestion.question}</p>
+              <div className="flex gap-2 mt-2">
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                  {selectedQuestion.questionCategory}
+                </span>
+                <span className={`px-2 py-1 rounded-full text-xs ${
+                  selectedQuestion.questionLevel === "Beginner"
+                    ? "bg-green-100 text-green-800"
+                    : selectedQuestion.questionLevel === "Intermediate"
+                    ? "bg-yellow-100 text-yellow-800"
+                    : "bg-red-100 text-red-800"
+                }`}>
+                  {selectedQuestion.questionLevel}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <h4 className="text-md font-semibold text-gray-800 mb-4">
+                Answers ({selectedQuestion.answers?.length || 0})
+              </h4>
+              
+              {selectedQuestion.answers && selectedQuestion.answers.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedQuestion.answers.map((answer, index) => {
+                    const answerKey = `${selectedQuestion.questionID}-${index}`;
+                    const isUpdating = updatingAnswers.has(answerKey);
+                    
+                    return (
+                      <div
+                        key={answer.answerID || `answer-${index}`}
+                        className={`p-4 border rounded-lg transition-all ${
+                          answer.isCorrect 
+                            ? "border-green-200 bg-green-50" 
+                            : "border-gray-200 bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-sm font-medium text-gray-600">
+                                Answer #{index + 1}
+                              </span>
+                              {answer.responseCount && (
+                                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                                  {answer.responseCount} responses
+                                </span>
+                              )}
+                              
+                              {/* NEW: Display rank and score if available */}
+                              {answer.rank !== undefined && answer.rank !== null && (
+                                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                  Rank #{answer.rank}
+                                </span>
+                              )}
+                              {answer.score !== undefined && answer.score !== null && (
+                                <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">
+                                  Score: {answer.score}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-gray-800 break-words">{answer.answer}</p>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {answer.isCorrect ? (
+                              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Correct
+                              </span>
+                            ) : (
+                              <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">
+                                Not Validated
+                              </span>
+                            )}
+                            
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => handleUpdateAnswerCorrectness(index, true)}
+                                disabled={isUpdating}
+                                className={`p-2 rounded-lg transition-all ${
+                                  answer.isCorrect
+                                    ? "bg-green-500 text-white"
+                                    : "bg-gray-100 text-green-600 hover:bg-green-100"
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                title="Mark as correct"
+                              >
+                                {isUpdating ? (
+                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </button>
+                              
+                              <button
+                                onClick={() => handleUpdateAnswerCorrectness(index, false)}
+                                disabled={isUpdating}
+                                className={`p-2 rounded-lg transition-all ${
+                                  !answer.isCorrect
+                                    ? "bg-red-500 text-white"
+                                    : "bg-gray-100 text-red-600 hover:bg-red-100"
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                title="Mark as incorrect"
+                              >
+                                {isUpdating ? (
+                                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p>No answers available for this question.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">Instructions:</span> Click the green checkmark to mark an answer as correct, or the red X to mark it as incorrect.
+                  {selectedQuestion.answers?.some(a => a.rank !== undefined || a.score !== undefined) && (
+                    <span className="block mt-1 text-xs">
+                      💡 Rank and Score values are fetched from your database and displayed above.
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowAnswerModal(false)}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
