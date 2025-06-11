@@ -1,4 +1,4 @@
-// Updated useAdminSurveyApi.ts - Added single question update functionality
+// Updated useAdminSurveyApi.ts - Added updateQuestionWithAnswers functionality
 import { useState, useCallback, useRef } from "react";
 import * as api from "../api/adminSurveyApi";
 import { Question } from "../../types/types";
@@ -85,7 +85,7 @@ export function useAdminSurveyApi() {
     [fetchQuestions]
   );
 
-  // NEW: Single question update function
+  // EXISTING: Single question update function (without answers)
   const updateSingleQuestion = useCallback(
     async (question: Question) => {
       setLoading(true);
@@ -97,6 +97,26 @@ export function useAdminSurveyApi() {
         console.log("✅ Single question updated successfully");
       } catch (e: any) {
         console.error("❌ Failed to update single question:", e);
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchQuestions]
+  );
+
+  // NEW: Question update function WITH answers (for answer validation)
+  const updateQuestionWithAnswers = useCallback(
+    async (question: Question) => {
+      setLoading(true);
+      setError("");
+      try {
+        await api.updateQuestionWithAnswers(question);
+        cache.current.questions = null;
+        await fetchQuestions(true);
+        console.log("✅ Question with answers updated successfully");
+      } catch (e: any) {
+        console.error("❌ Failed to update question with answers:", e);
         setError(e.message);
       } finally {
         setLoading(false);
@@ -153,8 +173,9 @@ export function useAdminSurveyApi() {
     isEmpty,
     fetchQuestions,
     createQuestions,
-    updateSingleQuestion, // NEW: Export single question update
-    updateQuestionsBatch, // RENAMED: Export batch update with clearer name
+    updateSingleQuestion, // EXISTING: For regular question updates
+    updateQuestionWithAnswers, // NEW: For answer validation updates
+    updateQuestionsBatch, // EXISTING: For batch updates
     deleteQuestions,
     setError,
   };
