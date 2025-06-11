@@ -10,7 +10,9 @@ export interface Question {
     answerID?: string;
     answer: string;
     responseCount?: number;
-    isCorrect: boolean;
+    isCorrect: boolean;        // Required boolean, defaults to false
+    rank?: number;             // Optional - for MCQ questions
+    score?: number;            // Optional - for scoring system
   }>;
   timeStamp?: boolean;
   createdAt?: string;
