@@ -685,11 +685,11 @@ const QuestionDetailPage: React.FC = () => {
                                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                       </svg>
-                                      Correct
+                                      True
                                     </span>
                                   ) : (
                                     <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
-                                      Not Validated
+                                      False
                                     </span>
                                   )}
                                   
