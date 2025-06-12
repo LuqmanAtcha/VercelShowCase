@@ -102,6 +102,14 @@ export const Header: React.FC<HeaderProps> = ({
               📊 Analytics
             </button>
             <button
+              onClick={() =>
+                window.open("https://show-w7qd.onrender.com/", "_blank")
+              }
+              className="flex items-center gap-2 px-4 py-2 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 transition font-semibold"
+            >
+              🏆 Ranking Page
+            </button>
+            <button
               onClick={onPreview}
               className="flex items-center gap-2 px-4 py-2 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 transition font-semibold"
             >

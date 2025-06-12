@@ -1,6 +1,6 @@
-// Updated QuestionCard.tsx - Question type disabled in edit mode
+// Updated QuestionCard.tsx - Removed unused Plus import and fixed other issues
 import React, { useState } from "react";
-import { X, Plus, Check } from "lucide-react";
+import { X, Check } from "lucide-react"; // Removed unused Plus import
 import { Question } from "../../types/types";
 
 const categories = [
@@ -24,7 +24,7 @@ interface QuestionCardProps {
   onUpdate(field: keyof Question, value: any): void;
   onAddNext(): void;
   currentTabLevel: string;
-  mode?: "create" | "edit"; // NEW: Add mode prop
+  mode?: "create" | "edit";
 }
 
 interface McqOption {
@@ -44,7 +44,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   onUpdate,
   onAddNext,
   currentTabLevel,
-  mode = "create", // NEW: Default to create mode for backward compatibility
+  mode = "create",
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -96,9 +96,12 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
 
   const isCategorySelected = () => !!question.questionCategory?.trim();
   const nearLimit = (question.question?.length || 0) > 450;
-
-  // NEW: Check if question type should be disabled
   const isQuestionTypeDisabled = Boolean(mode === "edit" && question.questionID);
+
+  // Add question button functionality - now using the onAddNext prop
+  const handleAddQuestion = () => {
+    onAddNext();
+  };
 
   return (
     <>
@@ -108,13 +111,28 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
           <h3 className="text-2xl font-bold text-gray-900">
             Question {index + 1}
           </h3>
-          <button
-            onClick={handleDeleteClick}
-            className="p-2 rounded-lg transition-colors text-red-500 hover:bg-red-100 hover:text-red-600"
-            title="Delete this question"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Add Question Button - using the onAddNext functionality */}
+            {mode === "create" && (
+              <button
+                onClick={handleAddQuestion}
+                className="p-2 rounded-lg transition-colors text-green-600 hover:bg-green-100 hover:text-green-700 flex items-center gap-1 text-sm font-medium"
+                title="Add another question"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add
+              </button>
+            )}
+            <button
+              onClick={handleDeleteClick}
+              className="p-2 rounded-lg transition-colors text-red-500 hover:bg-red-100 hover:text-red-600"
+              title="Delete this question"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Selects */}

@@ -1,5 +1,5 @@
-// Updated SurveyPage.tsx - Smart update logic: single PUT for 1 question, bulk for multiple
-import React, { useEffect, useState, useRef } from "react";
+// Updated SurveyPage.tsx - Fixed useEffect dependency warnings
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminSurveyApi } from "../hooks/useAdminSurveyApi";
 import SurveyLayout from "./SurveyLayout";
@@ -20,8 +20,8 @@ const SurveyPage: React.FC = () => {
     setError,
     fetchQuestions,
     createQuestions,
-    updateSingleQuestion, // Single question update
-    updateQuestionsBatch, // Bulk update
+    updateSingleQuestion,
+    updateQuestionsBatch,
     deleteQuestions,
   } = useAdminSurveyApi();
 
@@ -71,14 +71,13 @@ const SurveyPage: React.FC = () => {
   const [confirmationMessage, setConfirmationMessage] = useState("");
   const [onConfirmAction, setOnConfirmAction] = useState<() => void>(() => {});
 
-  // Loading helpers
-  const showLoading = (variant: typeof loadingState.variant, message?: string) => {
-    setLoadingState({ show: true, variant, message: message || "" });
-  };
+const showLoading = useCallback((variant: "create" | "update" | "delete" | "fetch", message?: string) => {
+  setLoadingState({ show: true, variant, message: message || "" });
+}, []);
 
-  const hideLoading = () => {
+  const hideLoading = useCallback(() => {
     setLoadingState({ show: false, message: "", variant: "fetch" });
-  };
+  }, []);
 
   const showConfirmationDialog = (
     title: string,
@@ -128,39 +127,8 @@ const SurveyPage: React.FC = () => {
     console.log("🧹 Cleared all modification tracking");
   };
 
-  // Admin check
-  useEffect(() => {
-    if (localStorage.getItem("isAdmin") !== "true") {
-      navigate("/login", { replace: true });
-    }
-  }, [navigate]);
-
-  // Initialize UI immediately for better UX
-  useEffect(() => {
-    if (!showUIImmediately) {
-      initializeEditMode();
-      setShowUIImmediately(true);
-    }
-
-    // Fetch existing questions once
-    if (showUIImmediately && !hasFetchedOnce.current) {
-      hasFetchedOnce.current = true;
-      showLoading("fetch", "Loading Questions...");
-      fetchQuestions().finally(() => hideLoading());
-    }
-  }, [fetchQuestions, showUIImmediately]);
-
-  // Update existing questions when fetched
-  useEffect(() => {
-    if (!showUIImmediately) return;
-    
-    if (mode === "edit") {
-      updateExistingQuestionsFromFetch();
-    }
-  }, [existingQuestions, showUIImmediately, mode]);
-
   // Initialize edit mode with existing questions or empty placeholders
-  const initializeEditMode = () => {
+  const initializeEditMode = useCallback(() => {
     const map: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
     
     existingQuestions.forEach((q) => {
@@ -178,10 +146,10 @@ const SurveyPage: React.FC = () => {
     setExistingQuestionsByLevel(map);
     setOriginalQuestions(JSON.parse(JSON.stringify(map))); // Deep copy for tracking
     clearModifications();
-  };
+  }, [existingQuestions]);
 
   // Update existing questions when new data is fetched
-  const updateExistingQuestionsFromFetch = () => {
+  const updateExistingQuestionsFromFetch = useCallback(() => {
     if (isEmpty && existingQuestions.length === 0) return;
     
     const map: QMap = { Beginner: [], Intermediate: [], Advanced: [] };
@@ -201,7 +169,7 @@ const SurveyPage: React.FC = () => {
     setExistingQuestionsByLevel(map);
     setOriginalQuestions(JSON.parse(JSON.stringify(map))); // Deep copy for tracking
     clearModifications();
-  };
+  }, [existingQuestions, isEmpty]);
 
   // Initialize add mode with clean slate
   const initializeAddMode = () => {
@@ -224,6 +192,37 @@ const SurveyPage: React.FC = () => {
     questionLevel: level,
     timesAnswered: 0,
   });
+
+  // Admin check
+  useEffect(() => {
+    if (localStorage.getItem("isAdmin") !== "true") {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
+
+  // Initialize UI immediately for better UX - fixed dependencies
+  useEffect(() => {
+    if (!showUIImmediately) {
+      initializeEditMode();
+      setShowUIImmediately(true);
+    }
+
+    // Fetch existing questions once
+    if (showUIImmediately && !hasFetchedOnce.current) {
+      hasFetchedOnce.current = true;
+      showLoading("fetch", "Loading Questions...");
+      fetchQuestions().finally(() => hideLoading());
+    }
+  }, [fetchQuestions, showUIImmediately, initializeEditMode, showLoading, hideLoading]);
+
+  // Update existing questions when fetched - fixed dependencies
+  useEffect(() => {
+    if (!showUIImmediately) return;
+    
+    if (mode === "edit") {
+      updateExistingQuestionsFromFetch();
+    }
+  }, [existingQuestions, showUIImmediately, mode, updateExistingQuestionsFromFetch]);
 
   // Get current questions based on mode
   const getCurrentQuestions = (): Question[] => {
@@ -453,29 +452,14 @@ const SurveyPage: React.FC = () => {
   };
 
   // Submission handlers
-const handleCreateNew = () => {
-  // First clean up each level
-  for (const level of LEVELS) {
-    const questions = [...newQuestionsByLevel[level]];
-    const validQuestions = questions.filter(q => 
-      q.question.trim() && q.questionCategory && q.questionLevel
-    );
-    
-    // Update with valid questions or add empty one if all removed
-    if (validQuestions.length === 0) {
-      updateCurrentQuestions(level, [createEmptyQuestion(level)]);
-    } else {
-      updateCurrentQuestions(level, validQuestions);
-    }
-  }
-
-  showConfirmationDialog(
-    "Create Survey Questions",
-    "This will create new survey questions. Do you want to continue?",
-    async () => {
-      const allNewQuestions = LEVELS.flatMap(lvl => newQuestionsByLevel[lvl]).filter(
-        q => q.question.trim() && q.questionCategory && q.questionLevel && !q.questionID
-      );
+  const handleCreateNew = () => {
+    showConfirmationDialog(
+      "Create Survey Questions",
+      "This will create new survey questions. Do you want to continue?",
+      async () => {
+        const allNewQuestions = LEVELS.flatMap(lvl => newQuestionsByLevel[lvl]).filter(
+          q => q.question.trim() && q.questionCategory && q.questionLevel && !q.questionID
+        );
         
         showLoading("create", "Creating Questions...");
         try {
@@ -491,62 +475,33 @@ const handleCreateNew = () => {
     );
   };
 
-// ⭐ NEW: Smart update logic - single PUT for 1 question, bulk for multiple
-const handleUpdateModifiedQuestions = async () => {
-  if (modifiedQuestions.size === 0) {
-    setError("No questions have been modified.");
-    return;
-  }
-
-  // First, clean up each level by removing empty questions
-  let emptyQuestionsRemoved = 0;
-  
-  for (const level of LEVELS) {
-    const questions = [...existingQuestionsByLevel[level]];
-    const validQuestions = questions.filter(q => 
-      q.question.trim() && q.questionCategory && q.questionLevel
-    );
-    
-    // Count removed questions
-    emptyQuestionsRemoved += questions.length - validQuestions.length;
-    
-    // Update the level with only valid questions, or add an empty one if all were removed
-    if (validQuestions.length === 0) {
-      updateCurrentQuestions(level, [createEmptyQuestion(level)]);
-    } else {
-      updateCurrentQuestions(level, validQuestions);
+  // ⭐ NEW: Smart update logic - single PUT for 1 question, bulk for multiple
+  const handleUpdateModifiedQuestions = async () => {
+    if (modifiedQuestions.size === 0) {
+      setError("No questions have been modified.");
+      return;
     }
-  }
-  
-  // Now collect only valid modified questions that need to be updated
-  const questionsToUpdate: Question[] = [];
-  
-  for (const level of LEVELS) {
-    for (const question of existingQuestionsByLevel[level]) {
-      if (question.questionID && 
-          modifiedQuestions.has(question.questionID) &&
-          question.question.trim() && 
-          question.questionCategory && 
-          question.questionLevel) {
-        questionsToUpdate.push(question);
+
+    const questionsToUpdate: Question[] = [];
+    
+    // Collect all modified questions
+    for (const level of LEVELS) {
+      for (const question of existingQuestionsByLevel[level]) {
+        if (question.questionID && modifiedQuestions.has(question.questionID)) {
+          questionsToUpdate.push(question);
+        }
       }
     }
-  }
 
-  if (questionsToUpdate.length === 0) {
-    setError("No valid modified questions found.");
-    return;
-  }
+    if (questionsToUpdate.length === 0) {
+      setError("No valid modified questions found.");
+      return;
+    }
 
-  // Show removal notification if questions were removed
-  if (emptyQuestionsRemoved > 0) {
-    console.log(`🧹 Removed ${emptyQuestionsRemoved} empty/untitled questions`);
-  }
+    console.log(`🔍 Found ${questionsToUpdate.length} modified questions to update`);
 
-  console.log(`🔍 Found ${questionsToUpdate.length} valid modified questions to update`);
-
-  // Rest of the function remains the same - update questions with single or bulk API call
-  if (questionsToUpdate.length === 1) {
+    // ⭐ SMART LOGIC: Choose update method based on count
+    if (questionsToUpdate.length === 1) {
       // Use single question update for better performance and clearer logging
       const singleQuestion = questionsToUpdate[0];
       console.log(`📝 Using SINGLE PUT for 1 question: ${singleQuestion.questionID}`);
