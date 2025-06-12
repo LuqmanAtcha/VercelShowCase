@@ -1,4 +1,4 @@
-// Updated Header.tsx - Updated to reflect auto-save functionality
+// Updated Header.tsx - Improved colors, text clarity, and layout spacing
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LogoutPrompt from "../common/LogoutPrompt";
@@ -50,98 +50,112 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-white bg-opacity-90 backdrop-blur border-b shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-          {/* Left: Logo + Title */}
-          <div className="flex items-center gap-4">
-            <div className="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center shadow text-white text-lg font-bold">
-              SF
+      <header className="sticky top-0 z-50 w-full bg-white bg-opacity-95 backdrop-blur-sm border-b-2 border-indigo-100 shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between w-full">
+            {/* Left: Logo + Title */}
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl flex items-center justify-center shadow-md">
+                <span className="text-white text-lg font-bold">SB</span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+                  Survey Builder
+                </h1>
+                <span className="text-sm text-slate-500 font-medium tracking-wide">
+                  Administrative Dashboard
+                </span>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-                Survey Form
-              </h1>
-              <span className="text-xs text-gray-400 tracking-wide">
-                Admin Panel
-              </span>
-            </div>
-          </div>
 
-          {/* Center: Mode Toggle */}
-          <div className="flex items-center gap-2 mt-2 sm:mt-0">
-            <button
-              onClick={onSwitchToCreate}
-              className={`px-5 py-2 rounded-full font-semibold flex items-center gap-2 shadow-sm transition
-                ${
+            {/* Center: Mode Toggle */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onSwitchToCreate}
+                className={`px-6 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 shadow-sm border transition-all duration-200 ${
                   mode === "create"
-                    ? "bg-purple-600 text-white"
-                    : "bg-white text-purple-700 border border-purple-200 hover:bg-purple-50"
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-md"
+                    : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300"
                 }`}
-            >
-              <span className="text-lg">➕</span> Add
-            </button>
-            <button
-              onClick={onSwitchToEdit}
-              className={`px-5 py-2 rounded-full font-semibold flex items-center gap-2 shadow-sm transition
-                ${
+              >
+                <span className="text-base ">➕</span>
+                <span>Add</span>
+              </button>
+              <button
+                onClick={onSwitchToEdit}
+                className={`px-6 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 shadow-sm border transition-all duration-200 ${
                   mode === "edit"
-                    ? "bg-blue-600 text-white"
-                    : "bg-white text-blue-700 border border-blue-200 hover:bg-blue-50"
+                    ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                    : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50 hover:border-blue-300"
                 }`}
-            >
-              <span className="text-lg">✏️</span> Edit
-            </button>
-          </div>
+              >
+                <span className="text-base">✏️</span>
+                <span>Edit</span>
+              </button>
+            </div>
 
-          {/* Right: Actions */}
-          <div className="flex items-center gap-3 mt-2 sm:mt-0">
-            <button
-              onClick={() => navigate("/analytics")}
-              className="flex items-center gap-2 px-4 py-2 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 transition font-semibold"
-            >
-              📊 Analytics
-            </button>
-            <button
-              onClick={() =>
-                window.open("https://show-w7qd.onrender.com/", "_blank")
-              }
-              className="flex items-center gap-2 px-4 py-2 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 transition font-semibold"
-            >
-              🏆 Ranking Page
-            </button>
-            <button
-              onClick={onPreview}
-              className="flex items-center gap-2 px-4 py-2 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-50 transition font-semibold"
-            >
-              👁️ Preview
-            </button>
-            {mode === "create" ? (
+            {/* Right: Navigation & Action Buttons */}
+            <div className="flex items-center gap-3">
+              {/* Navigation Buttons */}
               <button
-                onClick={onCreateNew}
-                disabled={isSubmitting || completedCount === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition font-semibold"
+                onClick={() => navigate("/analytics")}
+                className="flex items-center gap-2 px-4 py-2.5 text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 hover:border-indigo-300 transition-all duration-200 font-medium text-sm"
               >
-                ➕ {isSubmitting ? "Creating..." : "Create New"}
+                <span className="text-base">📊</span>
+                <span>Analytics</span>
               </button>
-            ) : (
+              
               <button
-                onClick={handleUpdateClick}
-                disabled={isSubmitting || completedCount === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition font-semibold"
+                onClick={() => window.open("https://show-w7qd.onrender.com/", "_blank")}
+                className="flex items-center gap-2 px-4 py-2.5 text-orange-700 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 hover:border-orange-300 transition-all duration-200 font-medium text-sm"
               >
-                ✏️ {isSubmitting ? "Updating..." : "Update Changes"}
+                <span className="text-base">🏆</span>
+                <span>Leaderboard</span>
               </button>
-            )}
-            <button
-              onClick={handleLogoutClick}
-              className="px-4 py-2 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition font-semibold"
-            >
-              🚪 Logout
-            </button>
+
+              <button
+                onClick={onPreview}
+                className="flex items-center gap-2 px-4 py-2.5 text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 hover:border-purple-300 transition-all duration-200 font-medium text-sm"
+              >
+                <span className="text-base">👁️</span>
+                <span>Preview</span>
+              </button>
+
+              {/* Action Button */}
+              {mode === "create" ? (
+                <button
+                  onClick={onCreateNew}
+                  disabled={isSubmitting || completedCount === 0}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm shadow-md"
+                >
+                  <span className="text-base">💾</span>
+                  <span>{isSubmitting ? "Creating..." : "Save Questions"}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleUpdateClick}
+                  disabled={isSubmitting || completedCount === 0}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm shadow-md"
+                >
+                  <span className="text-base">🔄</span>
+                  <span>{isSubmitting ? "Updating..." : "Save Changes"}</span>
+                </button>
+              )}
+
+              {/* Logout Button - Right Corner */}
+              <button
+                onClick={handleLogoutClick}
+                className="flex items-center gap-2 px-4 py-2.5 text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200 font-medium text-sm"
+              >
+                <span className="text-base">🚪</span>
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
-        {/* Divider */}
-        <div className="w-full h-[2px] bg-gradient-to-r from-purple-200 via-gray-100 to-blue-200 opacity-70" />
+
+        {/* Enhanced Divider */}
+        <div className="w-full h-1 bg-gradient-to-r from-indigo-200 via-purple-200 to-blue-200"></div>
       </header>
 
       {/* LOGOUT MODAL */}
