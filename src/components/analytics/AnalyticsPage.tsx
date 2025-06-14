@@ -1,4 +1,3 @@
-// src/components/analytics/AnalyticsPage.tsx
 import React, { useEffect, useState } from "react";
 import {
   Chart as ChartJS,
@@ -8,26 +7,16 @@ import {
   Title,
   Tooltip,
   Legend,
-  ArcElement,
 } from "chart.js";
+import { Bar } from "react-chartjs-2";
 import { Question, Answer } from "../../types/types";
 import { StatsOverview } from "./StatsOverview";
-import { CategoryChart } from "./CategoryChart";
-import { LevelChart } from "./LevelChart";
 import { ChartContainer } from "./ChartContainer";
-import { Leaderboard } from "./Leaderboard";
-import { useAnalyticsData } from "../hooks/useAnalyticsData";
 import { useNavigate } from "react-router-dom";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
 
 interface AnalyticsPageProps {
   fetchAllQuestionsAndAnswersAdmin: () => Promise<{
@@ -41,35 +30,31 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [answers, setAnswers] = useState<Answer[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(false);
 
-  // Handle refresh button click
   const handleRefresh = async () => {
     setLoading(true);
     setErr(null);
     setIsEmpty(false);
-
     try {
-      const { questions: fetchedQuestions } =
+      const { questions: fetchedQuestions, answers: fetchedAnswers } =
         await fetchAllQuestionsAndAnswersAdmin();
       setQuestions(fetchedQuestions);
+      setAnswers(fetchedAnswers);
       setIsEmpty(fetchedQuestions.length === 0);
     } catch (e: any) {
-      console.error("Analytics fetch error:", e);
-
-      // Check if it's a 404 or indicates no questions
       if (
-        e.message.includes("404") ||
-        e.message.includes("No questions") ||
-        e.message.includes("empty")
+        e.message?.includes("404") ||
+        e.message?.includes("No questions") ||
+        e.message?.includes("empty")
       ) {
         setIsEmpty(true);
         setQuestions([]);
-        setErr(
-          "No questions found in the database. Please add some questions first in the admin dashboard."
-        );
+        setAnswers([]);
+        setErr("No questions found in the database. Please add some questions first in the admin dashboard.");
       } else {
         setErr(e.message);
       }
@@ -78,37 +63,31 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     }
   };
 
-  // Initial fetch on mount with admin check
   useEffect(() => {
     if (localStorage.getItem("isAdmin") !== "true") {
       navigate("/login", { replace: true });
       return;
     }
-
     const fetchData = async () => {
       setLoading(true);
       setErr(null);
       setIsEmpty(false);
-
       try {
-        const { questions: fetchedQuestions } =
+        const { questions: fetchedQuestions, answers: fetchedAnswers } =
           await fetchAllQuestionsAndAnswersAdmin();
         setQuestions(fetchedQuestions);
+        setAnswers(fetchedAnswers);
         setIsEmpty(fetchedQuestions.length === 0);
       } catch (e: any) {
-        console.error("Analytics fetch error:", e);
-
-        // Check if it's a 404 or indicates no questions
         if (
-          e.message.includes("404") ||
-          e.message.includes("No questions") ||
-          e.message.includes("empty")
+          e.message?.includes("404") ||
+          e.message?.includes("No questions") ||
+          e.message?.includes("empty")
         ) {
           setIsEmpty(true);
           setQuestions([]);
-          setErr(
-            "No questions found in the database. Please add some questions first in the admin dashboard."
-          );
+          setAnswers([]);
+          setErr("No questions found in the database. Please add some questions first in the admin dashboard.");
         } else {
           setErr(e.message);
         }
@@ -116,14 +95,42 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
         setLoading(false);
       }
     };
-
     fetchData();
   }, [fetchAllQuestionsAndAnswersAdmin, navigate]);
 
-  // Use the custom hook to process data
-  const analyticsData = useAnalyticsData(questions);
+  // Stats for header boxes
+  const totalAnswered = questions.reduce((sum, q) => sum + (q.timesAnswered || 0), 0);
+  const totalSkipped = questions.reduce((sum, q) => sum + (q.timesSkipped || 0), 0);
+  const totalResponses = totalAnswered + totalSkipped;
+  const overallSkipRate = totalResponses > 0
+    ? ((totalSkipped / totalResponses) * 100).toFixed(1)
+    : "0.0";
 
-  // Header component
+  // Bar chart: Answer count per level
+  const levelAnswerCounts = LEVELS.map(
+    (level) =>
+      questions
+        .filter((q) => q.questionLevel === level)
+        .reduce((sum, q) => sum + (q.timesAnswered || 0), 0)
+  );
+
+  const levelChartData = {
+    labels: [...LEVELS],
+    datasets: [
+      {
+        label: "Answers Submitted",
+        data: levelAnswerCounts,
+        backgroundColor: [
+          "#a78bfa", // light purple (Beginner)
+          "#8b5cf6", // medium purple (Intermediate)
+          "#6d28d9", // deep purple (Advanced)
+        ],
+        borderRadius: 12,
+      },
+    ],
+  };
+
+  // Header
   const renderHeader = () => (
     <div className="flex justify-between items-center">
       <div className="flex items-center gap-3">
@@ -171,7 +178,6 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     );
   }
 
-  // Show empty state for no questions
   if (isEmpty) {
     return (
       <div className="p-6 space-y-6">
@@ -263,23 +269,121 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     );
   }
 
+  // Recently added questions (last 5)
+  const recentQuestions = [...questions].slice(-5).reverse();
+
+  // Most skipped questions (top 3 by skip rate)
+  const mostSkipped = [...questions]
+    .map(q => {
+      const total = (q.timesAnswered || 0) + (q.timesSkipped || 0);
+      return {
+        ...q,
+        skipRate: total > 0 ? (((q.timesSkipped || 0) / total) * 100).toFixed(1) : "0.0"
+      }
+    })
+    .sort((a, b) => Number(b.skipRate) - Number(a.skipRate))
+    .slice(0, 3);
+
   return (
     <div className="p-6 space-y-6">
       {renderHeader()}
 
       <StatsOverview
-        totalResponses={analyticsData.totalResponses}
-        totalAnswered={analyticsData.totalAnswered}
-        totalSkipped={analyticsData.totalSkipped}
-        overallSkipRate={analyticsData.overallSkipRate}
+        totalResponses={totalResponses}
+        totalAnswered={totalAnswered}
+        totalSkipped={totalSkipped}
+        overallSkipRate={overallSkipRate}
       />
 
       <ChartContainer>
-        <CategoryChart data={analyticsData.categoryChartData} />
-        <LevelChart data={analyticsData.levelChartData} />
+        <div className="bg-white p-4 rounded shadow w-full max-w-[500px]">
+          <div className="font-semibold text-lg mb-2 text-center">
+            Answers Submitted Per Level
+          </div>
+          <div className="h-[250px]">
+            <Bar
+              data={levelChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: { beginAtZero: true, ticks: { precision: 0 } },
+                },
+              }}
+              height={250}
+            />
+          </div>
+        </div>
       </ChartContainer>
 
-      <Leaderboard items={analyticsData.leaderboard} />
+      <div className="mt-12 max-w-4xl mx-auto grid grid-cols-1 gap-8">
+  {/* Recently Added Questions */}
+  <div className="bg-white shadow rounded-xl flex flex-col w-full">
+    <div className="p-6 border-b font-semibold text-gray-900 text-lg flex items-center gap-2">
+      <span role="img" aria-label="recent">🆕</span>
+      Recently Added Questions
+    </div>
+    <ul className="overflow-y-auto" style={{ maxHeight: "260px" }}>
+      {recentQuestions.length === 0 && (
+        <li className="px-6 py-4 text-gray-500">No recent questions.</li>
+      )}
+      {recentQuestions.map((q, idx) => (
+        <li
+          key={q.questionID || idx}
+          className="px-6 py-4 border-b last:border-0 flex flex-col md:flex-row md:items-center md:justify-between hover:bg-purple-50 transition"
+        >
+          <span className="font-medium">{q.question}</span>
+          <div className="flex gap-2 mt-2 md:mt-0 flex-wrap">
+            <span className={`px-2 py-1 rounded-full text-xs ${q.questionLevel === "Beginner" ? "bg-purple-100 text-purple-800" : q.questionLevel === "Intermediate" ? "bg-purple-200 text-purple-900" : "bg-purple-300 text-purple-900"}`}>
+              {q.questionLevel}
+            </span>
+            <span className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-700">{q.questionCategory}</span>
+            <a
+              href={`/analytics/question/${q.questionID}`}
+              className="text-purple-600 underline text-xs"
+            >
+              View
+            </a>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  {/* Most Skipped Questions */}
+  <div className="bg-white shadow rounded-xl flex flex-col w-full">
+    <div className="p-6 border-b font-semibold text-gray-900 text-lg flex items-center gap-2">
+      <span role="img" aria-label="skipped">🚩</span>
+      Most Skipped Questions
+    </div>
+    <table className="w-full text-left">
+      <thead>
+        <tr className="bg-purple-50">
+          <th className="px-6 py-3">Question</th>
+          <th className="px-6 py-3">Skip %</th>
+        </tr>
+      </thead>
+      <tbody>
+        {mostSkipped.length === 0 && (
+          <tr>
+            <td className="px-6 py-3 text-gray-500" colSpan={2}>No skipped questions.</td>
+          </tr>
+        )}
+        {mostSkipped.map((q, idx) => (
+          <tr key={q.questionID || idx} className={idx % 2 ? "bg-purple-25" : "bg-white"}>
+            <td className="px-6 py-3">
+              {q.question.length > 40
+                ? q.question.slice(0, 40) + "..."
+                : q.question}
+            </td>
+            <td className="px-6 py-3">{q.skipRate}%</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+
     </div>
   );
 };

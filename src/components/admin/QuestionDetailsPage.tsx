@@ -1,33 +1,11 @@
-// Updated QuestionDetailsPage.tsx - Using updateQuestionWithAnswers method
 import React, { useEffect, useState, useMemo } from "react";
 import {
   fetchAnswersByQuestionId,
   fetchAllQuestionsAdmin,
-  updateQuestionWithAnswers, // Import the NEW method
+  updateQuestionWithAnswers,
 } from "../api/adminSurveyApi";
-import { Bar, Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-} from "chart.js";
 import { useParams, useNavigate } from "react-router-dom";
 import { Question } from "../../types/types";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
 
 interface Answer {
   answerID: string;
@@ -36,131 +14,73 @@ interface Answer {
   createdAt?: string;
 }
 
-interface AnswerStats {
-  totalAnswers: number;
-  uniqueAnswers: number;
-  averageLength: number;
-  mostCommonAnswer: string;
-  longestAnswer: string;
-  shortestAnswer: string;
-}
-
 const QuestionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [question, setQuestion] = useState<Question | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"chart" | "list" | "stats">("list");
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"frequency" | "length" | "alphabetical">(
-    "frequency"
-  );
-  // State for tracking answer updates
+  const [sortBy, setSortBy] = useState<"frequency" | "length" | "alphabetical">("frequency");
   const [updatingAnswers, setUpdatingAnswers] = useState<Set<string>>(new Set());
   const [updateError, setUpdateError] = useState<string>("");
-  
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Admin check first
     if (localStorage.getItem("isAdmin") !== "true") {
       navigate("/login", { replace: true });
       return;
     }
-
     const fetchData = async () => {
       if (!id) {
         setError("No question ID provided");
         setLoading(false);
         return;
       }
-
       setLoading(true);
       setError(null);
-
       try {
-        console.log("🔍 Fetching data for question ID:", id);
-
-        // First, get all questions to find the specific question
         const allQuestions = await fetchAllQuestionsAdmin();
-        console.log("📋 All questions fetched:", allQuestions.length);
-
-        // Find the question by ID (handle both _id and questionID formats)
         const foundQuestion = allQuestions.find(
           (q) =>
             q.questionID === id ||
             (q as any)._id === id ||
             String(q.questionID) === String(id)
         );
-
-        console.log("🎯 Found question:", foundQuestion);
-
         if (!foundQuestion) {
           setError(`Question with ID "${id}" not found`);
           setLoading(false);
           return;
         }
-
         setQuestion(foundQuestion);
-
-        // Now fetch answers for this question
         const answerData = await fetchAnswersByQuestionId(id);
-        console.log("💬 Answers fetched:", answerData.length);
-
         setAnswers(answerData);
       } catch (e: any) {
-        console.error("❌ Error fetching data:", e);
         setError(e.message);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [id, navigate]);
 
-  // NEW: Function to handle answer validation using the new API method
   const handleUpdateAnswerCorrectness = async (answerText: string, isCorrect: boolean) => {
     if (!question) return;
-
     setUpdatingAnswers(prev => new Set(prev).add(answerText));
     setUpdateError("");
-
     try {
-      // Find the answer in the question's answers array
       const answerIndex = question.answers?.findIndex(a => a.answer === answerText);
-      
-      if (answerIndex === undefined || answerIndex === -1) {
-        throw new Error("Answer not found in question");
-      }
-
-      // Create updated question with only the specific answer's isCorrect field changed
+      if (answerIndex === undefined || answerIndex === -1) throw new Error("Answer not found in question");
       const updatedQuestion: Question = {
         ...question,
-        answers: question.answers!.map((answer, index) => 
-          index === answerIndex 
-            ? { ...answer, isCorrect } 
-            : answer
+        answers: question.answers!.map((answer, index) =>
+          index === answerIndex ? { ...answer, isCorrect } : answer
         )
       };
-
-      console.log("🚀 About to update question with answers:", {
-        questionID: updatedQuestion.questionID,
-        answerText: answerText.substring(0, 30) + "...",
-        newIsCorrect: isCorrect,
-        totalAnswers: updatedQuestion.answers?.length,
-      });
-
-      // Use NEW updateQuestionWithAnswers method that includes answers array
       await updateQuestionWithAnswers(updatedQuestion);
-
-      // Update local state
       setQuestion(updatedQuestion);
-
-      console.log(`✅ Answer "${answerText}" marked as ${isCorrect ? 'correct' : 'incorrect'}`);
     } catch (error: any) {
-      console.error('❌ Failed to update answer correctness:', error);
       setUpdateError(`Failed to update answer: ${error.message}`);
     } finally {
       setUpdatingAnswers(prev => {
@@ -171,64 +91,7 @@ const QuestionDetailPage: React.FC = () => {
     }
   };
 
-  // Calculate answer statistics
-  const answerStats: AnswerStats = useMemo(() => {
-    if (answers.length === 0) {
-      return {
-        totalAnswers: 0,
-        uniqueAnswers: 0,
-        averageLength: 0,
-        mostCommonAnswer: "",
-        longestAnswer: "",
-        shortestAnswer: "",
-      };
-    }
-
-    const answerTexts = answers
-      .map((a) => a.answer)
-      .filter((text) => text.trim() !== "");
-    const uniqueAnswers = [...new Set(answerTexts)];
-
-    // Calculate frequencies
-    const frequencies: Record<string, number> = {};
-    answerTexts.forEach((answer) => {
-      frequencies[answer] = (frequencies[answer] || 0) + 1;
-    });
-
-    const mostCommon =
-      Object.entries(frequencies).sort(([, a], [, b]) => b - a)[0]?.[0] || "";
-
-    const lengths = answerTexts.map((a) => a.length);
-    const averageLength =
-      lengths.length > 0
-        ? Math.round(
-            lengths.reduce((sum, len) => sum + len, 0) / lengths.length
-          )
-        : 0;
-
-    const longest = answerTexts.reduce(
-      (longest, current) =>
-        current.length > longest.length ? current : longest,
-      ""
-    );
-
-    const shortest = answerTexts.reduce(
-      (shortest, current) =>
-        current.length < shortest.length ? current : shortest,
-      answerTexts[0] || ""
-    );
-
-    return {
-      totalAnswers: answerTexts.length,
-      uniqueAnswers: uniqueAnswers.length,
-      averageLength,
-      mostCommonAnswer: mostCommon,
-      longestAnswer: longest,
-      shortestAnswer: shortest,
-    };
-  }, [answers]);
-
-  // Build frequency map for charts
+  // Prepare filtered and sorted answers
   const answerFrequencies: Record<string, number> = useMemo(() => {
     const frequencies: Record<string, number> = {};
     answers.forEach((a) => {
@@ -239,16 +102,13 @@ const QuestionDetailPage: React.FC = () => {
     return frequencies;
   }, [answers]);
 
-  // Filter and sort answers based on search and sort criteria
   const filteredAnswers = useMemo(() => {
     let filtered = Object.entries(answerFrequencies);
-
     if (searchTerm) {
       filtered = filtered.filter(([answer]) =>
         answer.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
     switch (sortBy) {
       case "frequency":
         filtered.sort(([, a], [, b]) => b - a);
@@ -260,69 +120,19 @@ const QuestionDetailPage: React.FC = () => {
         filtered.sort(([a], [b]) => b.length - a.length);
         break;
     }
-
     return filtered;
   }, [answerFrequencies, searchTerm, sortBy]);
 
-  const chartData = {
-    labels: filteredAnswers
-      .slice(0, 10)
-      .map(([answer]) =>
-        answer.length > 30 ? answer.substring(0, 30) + "..." : answer
-      ),
-    datasets: [
-      {
-        label: "Answer Frequency",
-        data: filteredAnswers.slice(0, 10).map(([, freq]) => freq),
-        backgroundColor: [
-          "#8B5CF6",
-          "#06B6D4",
-          "#10B981",
-          "#F59E0B",
-          "#EF4444",
-          "#EC4899",
-          "#6366F1",
-          "#84CC16",
-          "#F97316",
-          "#14B8A6",
-        ],
-      },
-    ],
-  };
+  const answerStats = useMemo(() => {
+    const answerTexts = answers.map((a) => a.answer).filter((text) => text.trim() !== "");
+    const uniqueAnswers = [...new Set(answerTexts)];
+    return {
+      totalAnswers: answerTexts.length,
+      uniqueAnswers: uniqueAnswers.length,
+    };
+  }, [answers]);
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: viewMode === "chart" ? ("y" as const) : undefined,
-    plugins: {
-      legend: { display: false },
-      title: {
-        display: true,
-        text: `${question?.question.substring(0, 50)}${
-          question?.question && question.question.length > 50 ? "..." : ""
-        }`,
-      },
-      tooltip: {
-        callbacks: {
-          label: function (context: any) {
-            const fullAnswer = filteredAnswers[context.dataIndex]?.[0] || "";
-            return `${fullAnswer}: ${
-              context.parsed.y || context.parsed.x
-            } responses`;
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-      },
-      y: {
-        beginAtZero: true,
-      },
-    },
-  };
-
+  // UI rendering logic
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
@@ -460,13 +270,13 @@ const QuestionDetailPage: React.FC = () => {
           </div>
           <div className="flex gap-2">
             <button
-              className="bg-gray-200 px-4 py-2 rounded-lg text-sm hover:bg-gray-300 transition-colors"
+              className="bg-gray-200 px-4 py-2 rounded-lg text-lg hover:bg-gray-300 transition-colors"
               onClick={() => window.location.reload()}
             >
               🔄 Refresh
             </button>
             <button
-              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-lg"
               onClick={() => navigate(-1)}
             >
               ← Back
@@ -477,12 +287,12 @@ const QuestionDetailPage: React.FC = () => {
         {/* Question Info Card */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-gray-900">
+            <h3 className="text-2xl font-bold text-gray-900">
               Question Details
             </h3>
             <div className="flex gap-2">
               <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${
+                className={`px-4 py-2 rounded-full text-lg font-medium ${
                   question.questionLevel === "Beginner"
                     ? "bg-green-100 text-green-800"
                     : question.questionLevel === "Intermediate"
@@ -492,25 +302,19 @@ const QuestionDetailPage: React.FC = () => {
               >
                 {question.questionLevel}
               </span>
-              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+              <span className="px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-lg font-medium">
                 {question.questionCategory}
               </span>
             </div>
           </div>
-          <p className="text-gray-800 text-lg leading-relaxed">
+          <p className="text-gray-800 text-xl leading-relaxed font-semibold">
             {question.question}
           </p>
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500">Question ID:</span>
-                <p className="font-mono text-xs text-gray-700">
-                  {question.questionID}
-                </p>
-              </div>
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-lg font-medium">
               <div>
                 <span className="text-gray-500">Type:</span>
-                <p className="font-medium">
+                <p className="font-semibold">
                   {question.questionType === "Mcq"
                     ? "Multiple Choice"
                     : "Text Input"}
@@ -539,12 +343,12 @@ const QuestionDetailPage: React.FC = () => {
               <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-red-700 text-sm font-medium">{updateError}</p>
+              <p className="text-red-700 text-lg font-medium">{updateError}</p>
               <button
                 onClick={() => setUpdateError("")}
                 className="ml-auto text-red-600 hover:text-red-800"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -552,54 +356,27 @@ const QuestionDetailPage: React.FC = () => {
           </div>
         )}
 
-        {/* View Controls */}
+        {/* Controls */}
         <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode("chart")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  viewMode === "chart"
-                    ? "bg-purple-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                📊 Chart View
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  viewMode === "list"
-                    ? "bg-purple-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                📋 List View
-              </button>
-              <button
-                onClick={() => setViewMode("stats")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  viewMode === "stats"
-                    ? "bg-purple-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                📈 Statistics
-              </button>
-            </div>
-
+            <button
+              className="px-5 py-3 rounded-lg font-bold text-lg bg-purple-600 text-white min-w-[120px]"
+              disabled
+            >
+              📋 List View
+            </button>
             <div className="flex gap-2 w-full sm:w-auto">
               <input
                 type="text"
                 placeholder="Search answers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 sm:w-64 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="flex-1 sm:w-64 px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 <option value="frequency">Sort by Frequency</option>
                 <option value="alphabetical">Sort Alphabetically</option>
@@ -609,276 +386,97 @@ const QuestionDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Content based on view mode */}
-        {viewMode === "chart" && (
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-            <h3 className="text-lg font-bold mb-4">Response Frequency Chart</h3>
-            <div className="h-96">
-              <Bar data={chartData} options={chartOptions} />
-            </div>
+        {/* Answer List */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-2xl font-bold">
+              All Responses ({filteredAnswers.length})
+            </h3>
+            {question.questionType === "Input" && (
+              <p className="text-lg text-gray-600 mt-1">
+                Click the green ✓ or red ✗ buttons to validate answers
+              </p>
+            )}
           </div>
-        )}
-
-        {viewMode === "list" && (
-          <div className="bg-white rounded-xl shadow-lg border border-gray-100">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-lg font-bold">
-                All Responses ({filteredAnswers.length})
-              </h3>
-              {question.questionType === "Input" && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Click the green ✓ or red ✗ buttons to validate answers
-                </p>
-              )}
-            </div>
-            <div className="max-h-96 overflow-y-auto">
-              {filteredAnswers.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">
-                  No answers match your search criteria.
-                </div>
-              ) : (
-                <ul className="divide-y divide-gray-200">
-                  {filteredAnswers.map(([answer, count], idx) => {
-                    const isUpdating = updatingAnswers.has(answer);
-                    const questionAnswer = question.answers?.find(a => a.answer === answer);
-                    const isCorrect = questionAnswer?.isCorrect || false;
-                    
-                    return (
-                      <li
-                        key={idx}
-                        className="p-4 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-gray-900 break-words">{answer}</p>
-                            <div className="flex items-center gap-4 mt-2">
-                              <p className="text-sm text-gray-500">
-                                Length: {answer.length} characters
-                              </p>
-                              
-                              {/* NEW: Display rank and score if available */}
+          <div className="max-h-96 overflow-y-auto">
+            {filteredAnswers.length === 0 ? (
+              <div className="p-6 text-center text-gray-500 text-xl">
+                No answers match your search criteria.
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-200">
+                {filteredAnswers.map(([answer, count], idx) => {
+                  const isUpdating = updatingAnswers.has(answer);
+                  const questionAnswer = question.answers?.find(a => a.answer === answer);
+                  const isCorrect = questionAnswer?.isCorrect || false;
+                  return (
+                    <li
+                      key={idx}
+                      className="p-6 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-900 break-words text-2xl font-bold">{answer}</p>
+                          <div className="flex flex-col md:flex-row md:items-center justify-between mt-4">
+                            <div className="flex flex-wrap gap-4 items-center text-lg font-medium">
+                              <span className="text-gray-600">
+                                Length: <span className="text-black">{answer.length} characters</span>
+                              </span>
                               {questionAnswer && (
-                                <div className="flex items-center gap-3">
+                                <>
                                   {questionAnswer.rank !== undefined && questionAnswer.rank !== null && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-xs text-gray-500">Rank:</span>
-                                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                                        #{questionAnswer.rank}
-                                      </span>
-                                    </div>
+                                    <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-bold text-base">
+                                      Rank: #{questionAnswer.rank}
+                                    </span>
                                   )}
                                   {questionAnswer.score !== undefined && questionAnswer.score !== null && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-xs text-gray-500">Score:</span>
-                                      <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                                        {questionAnswer.score}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                              
-                              {question.questionType === "Input" && (
-                                <div className="flex items-center gap-2">
-                                  {isCorrect ? (
-                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                      </svg>
-                                      True
-                                    </span>
-                                  ) : (
-                                    <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
-                                      False
+                                    <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full font-bold text-base">
+                                      Score: {questionAnswer.score}
                                     </span>
                                   )}
-                                  
-                                  <div className="flex gap-1">
-                                    <button
-                                      onClick={() => handleUpdateAnswerCorrectness(answer, true)}
-                                      disabled={isUpdating}
-                                      className={`p-1.5 rounded-lg transition-all ${
-                                        isCorrect
-                                          ? "bg-green-500 text-white"
-                                          : "bg-gray-100 text-green-600 hover:bg-green-100"
-                                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                      title="Mark as correct"
-                                    >
-                                      {isUpdating ? (
-                                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                                      ) : (
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                      )}
-                                    </button>
-                                    
-                                    <button
-                                      onClick={() => handleUpdateAnswerCorrectness(answer, false)}
-                                      disabled={isUpdating}
-                                      className={`p-1.5 rounded-lg transition-all ${
-                                        !isCorrect
-                                          ? "bg-red-500 text-white"
-                                          : "bg-gray-100 text-red-600 hover:bg-red-100"
-                                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                      title="Mark as incorrect"
-                                    >
-                                      {isUpdating ? (
-                                        <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                                      ) : (
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                      )}
-                                    </button>
-                                  </div>
-                                </div>
+                                </>
                               )}
                             </div>
-                          </div>
-                          <div className="ml-4 flex-shrink-0">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                              {count} {count === 1 ? "response" : "responses"}
-                            </span>
+                            <div className="flex items-center gap-3 mt-4 md:mt-0 ml-2">
+                              <span className={`px-4 py-2 rounded-full font-bold text-lg shadow ${isCorrect ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                {isCorrect ? "Correct" : "Incorrect"}
+                              </span>
+                              <button
+                                onClick={() => handleUpdateAnswerCorrectness(answer, true)}
+                                disabled={isUpdating}
+                                className="flex items-center justify-center px-3 py-2 rounded-full border border-green-200 text-green-700 bg-green-50 hover:bg-green-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-2xl"
+                                title="Mark as correct"
+                              >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => handleUpdateAnswerCorrectness(answer, false)}
+                                disabled={isUpdating}
+                                className="flex items-center justify-center px-3 py-2 rounded-full border border-red-200 text-red-700 bg-red-50 hover:bg-red-200 transition disabled:opacity-50 disabled:cursor-not-allowed text-2xl"
+                                title="Mark as incorrect"
+                              >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
+                        <div className="ml-6 flex-shrink-0">
+                          <span className="inline-flex items-center px-4 py-2 rounded-full text-lg font-bold bg-purple-100 text-purple-800 shadow">
+                            {count} {count === 1 ? "response" : "responses"}
+                          </span>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
-        )}
-
-        {viewMode === "stats" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Statistics Overview */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-              <h3 className="text-lg font-bold mb-4">Response Statistics</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Responses:</span>
-                  <span className="font-bold text-purple-600">
-                    {answerStats.totalAnswers}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Unique Answers:</span>
-                  <span className="font-bold text-blue-600">
-                    {answerStats.uniqueAnswers}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Average Length:</span>
-                  <span className="font-bold text-green-600">
-                    {answerStats.averageLength} chars
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Response Rate:</span>
-                  <span className="font-bold text-orange-600">
-                    {answerStats.uniqueAnswers > 0
-                      ? (
-                          (answerStats.uniqueAnswers /
-                            answerStats.totalAnswers) *
-                          100
-                        ).toFixed(1) + "%"
-                      : "0%"}{" "}
-                    unique
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Most Common Answer */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-              <h3 className="text-lg font-bold mb-4">Most Common Answer</h3>
-              {answerStats.mostCommonAnswer ? (
-                <div className="space-y-3">
-                  <div className="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-                    <p className="text-gray-900 font-medium">
-                      {answerStats.mostCommonAnswer}
-                    </p>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Given {answerFrequencies[answerStats.mostCommonAnswer]}{" "}
-                    times (
-                    {(
-                      (answerFrequencies[answerStats.mostCommonAnswer] /
-                        answerStats.totalAnswers) *
-                      100
-                    ).toFixed(1)}
-                    % of responses)
-                  </p>
-                </div>
-              ) : (
-                <p className="text-gray-500">No answers available</p>
-              )}
-            </div>
-
-            {/* Answer Length Analysis */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-              <h3 className="text-lg font-bold mb-4">Length Analysis</h3>
-              <div className="space-y-3">
-                <div>
-                  <span className="text-sm text-gray-600">Longest Answer:</span>
-                  <p className="text-sm bg-gray-50 p-2 rounded mt-1 break-words">
-                    {answerStats.longestAnswer || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-600">
-                    Shortest Answer:
-                  </span>
-                  <p className="text-sm bg-gray-50 p-2 rounded mt-1 break-words">
-                    {answerStats.shortestAnswer || "N/A"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Distribution Chart */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-              <h3 className="text-lg font-bold mb-4">Response Distribution</h3>
-              <div className="h-64">
-                <Pie
-                  data={{
-                    labels: filteredAnswers
-                      .slice(0, 5)
-                      .map(([answer]) =>
-                        answer.length > 20
-                          ? answer.substring(0, 20) + "..."
-                          : answer
-                      ),
-                    datasets: [
-                      {
-                        data: filteredAnswers
-                          .slice(0, 5)
-                          .map(([, freq]) => freq),
-                        backgroundColor: [
-                          "#8B5CF6",
-                          "#06B6D4",
-                          "#10B981",
-                          "#F59E0B",
-                          "#EF4444",
-                        ],
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: { position: "bottom" },
-                      title: { display: true, text: "Top 5 Responses" },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
