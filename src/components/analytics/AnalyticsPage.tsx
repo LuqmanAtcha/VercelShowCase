@@ -269,8 +269,7 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     );
   }
 
-  // Recently added questions (last 5)
-  const recentQuestions = [...questions].slice(-5).reverse();
+  
 
   // Most skipped questions (top 3 by skip rate)
   const mostSkipped = [...questions]
@@ -317,38 +316,7 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
       </ChartContainer>
 
       <div className="mt-12 max-w-4xl mx-auto grid grid-cols-1 gap-8">
-  {/* Recently Added Questions */}
-  <div className="bg-white shadow rounded-xl flex flex-col w-full">
-    <div className="p-6 border-b font-semibold text-gray-900 text-lg flex items-center gap-2">
-      <span role="img" aria-label="recent">🆕</span>
-      Recently Added Questions
-    </div>
-    <ul className="overflow-y-auto" style={{ maxHeight: "260px" }}>
-      {recentQuestions.length === 0 && (
-        <li className="px-6 py-4 text-gray-500">No recent questions.</li>
-      )}
-      {recentQuestions.map((q, idx) => (
-        <li
-          key={q.questionID || idx}
-          className="px-6 py-4 border-b last:border-0 flex flex-col md:flex-row md:items-center md:justify-between hover:bg-purple-50 transition"
-        >
-          <span className="font-medium">{q.question}</span>
-          <div className="flex gap-2 mt-2 md:mt-0 flex-wrap">
-            <span className={`px-2 py-1 rounded-full text-xs ${q.questionLevel === "Beginner" ? "bg-purple-100 text-purple-800" : q.questionLevel === "Intermediate" ? "bg-purple-200 text-purple-900" : "bg-purple-300 text-purple-900"}`}>
-              {q.questionLevel}
-            </span>
-            <span className="px-2 py-1 bg-gray-100 rounded-full text-xs text-gray-700">{q.questionCategory}</span>
-            <a
-              href={`/analytics/question/${q.questionID}`}
-              className="text-purple-600 underline text-xs"
-            >
-              View
-            </a>
-          </div>
-        </li>
-      ))}
-    </ul>
-  </div>
+  
 
   {/* Most Skipped Questions */}
   <div className="bg-white shadow rounded-xl flex flex-col w-full">
