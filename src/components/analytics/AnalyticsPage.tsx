@@ -14,7 +14,14 @@ import { StatsOverview } from "./StatsOverview";
 import { ChartContainer } from "./ChartContainer";
 import { useNavigate } from "react-router-dom";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
 
@@ -30,6 +37,7 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
+  // eslint-disable-next-line
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -54,7 +62,9 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
         setIsEmpty(true);
         setQuestions([]);
         setAnswers([]);
-        setErr("No questions found in the database. Please add some questions first in the admin dashboard.");
+        setErr(
+          "No questions found in the database. Please add some questions first in the admin dashboard."
+        );
       } else {
         setErr(e.message);
       }
@@ -87,7 +97,9 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
           setIsEmpty(true);
           setQuestions([]);
           setAnswers([]);
-          setErr("No questions found in the database. Please add some questions first in the admin dashboard.");
+          setErr(
+            "No questions found in the database. Please add some questions first in the admin dashboard."
+          );
         } else {
           setErr(e.message);
         }
@@ -99,19 +111,25 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
   }, [fetchAllQuestionsAndAnswersAdmin, navigate]);
 
   // Stats for header boxes
-  const totalAnswered = questions.reduce((sum, q) => sum + (q.timesAnswered || 0), 0);
-  const totalSkipped = questions.reduce((sum, q) => sum + (q.timesSkipped || 0), 0);
+  const totalAnswered = questions.reduce(
+    (sum, q) => sum + (q.timesAnswered || 0),
+    0
+  );
+  const totalSkipped = questions.reduce(
+    (sum, q) => sum + (q.timesSkipped || 0),
+    0
+  );
   const totalResponses = totalAnswered + totalSkipped;
-  const overallSkipRate = totalResponses > 0
-    ? ((totalSkipped / totalResponses) * 100).toFixed(1)
-    : "0.0";
+  const overallSkipRate =
+    totalResponses > 0
+      ? ((totalSkipped / totalResponses) * 100).toFixed(1)
+      : "0.0";
 
   // Bar chart: Answer count per level
-  const levelAnswerCounts = LEVELS.map(
-    (level) =>
-      questions
-        .filter((q) => q.questionLevel === level)
-        .reduce((sum, q) => sum + (q.timesAnswered || 0), 0)
+  const levelAnswerCounts = LEVELS.map((level) =>
+    questions
+      .filter((q) => q.questionLevel === level)
+      .reduce((sum, q) => sum + (q.timesAnswered || 0), 0)
   );
 
   const levelChartData = {
@@ -269,16 +287,17 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     );
   }
 
-  
-
   // Most skipped questions (top 3 by skip rate)
   const mostSkipped = [...questions]
-    .map(q => {
+    .map((q) => {
       const total = (q.timesAnswered || 0) + (q.timesSkipped || 0);
       return {
         ...q,
-        skipRate: total > 0 ? (((q.timesSkipped || 0) / total) * 100).toFixed(1) : "0.0"
-      }
+        skipRate:
+          total > 0
+            ? (((q.timesSkipped || 0) / total) * 100).toFixed(1)
+            : "0.0",
+      };
     })
     .sort((a, b) => Number(b.skipRate) - Number(a.skipRate))
     .slice(0, 3);
@@ -316,42 +335,46 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
       </ChartContainer>
 
       <div className="mt-12 max-w-4xl mx-auto grid grid-cols-1 gap-8">
-  
-
-  {/* Most Skipped Questions */}
-  <div className="bg-white shadow rounded-xl flex flex-col w-full">
-    <div className="p-6 border-b font-semibold text-gray-900 text-lg flex items-center gap-2">
-      <span role="img" aria-label="skipped">🚩</span>
-      Most Skipped Questions
-    </div>
-    <table className="w-full text-left">
-      <thead>
-        <tr className="bg-purple-50">
-          <th className="px-6 py-3">Question</th>
-          <th className="px-6 py-3">Skip %</th>
-        </tr>
-      </thead>
-      <tbody>
-        {mostSkipped.length === 0 && (
-          <tr>
-            <td className="px-6 py-3 text-gray-500" colSpan={2}>No skipped questions.</td>
-          </tr>
-        )}
-        {mostSkipped.map((q, idx) => (
-          <tr key={q.questionID || idx} className={idx % 2 ? "bg-purple-25" : "bg-white"}>
-            <td className="px-6 py-3">
-              {q.question.length > 40
-                ? q.question.slice(0, 40) + "..."
-                : q.question}
-            </td>
-            <td className="px-6 py-3">{q.skipRate}%</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
-
+        {/* Most Skipped Questions */}
+        <div className="bg-white shadow rounded-xl flex flex-col w-full">
+          <div className="p-6 border-b font-semibold text-gray-900 text-lg flex items-center gap-2">
+            <span role="img" aria-label="skipped">
+              🚩
+            </span>
+            Most Skipped Questions
+          </div>
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-purple-50">
+                <th className="px-6 py-3">Question</th>
+                <th className="px-6 py-3">Skip %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mostSkipped.length === 0 && (
+                <tr>
+                  <td className="px-6 py-3 text-gray-500" colSpan={2}>
+                    No skipped questions.
+                  </td>
+                </tr>
+              )}
+              {mostSkipped.map((q, idx) => (
+                <tr
+                  key={q.questionID || idx}
+                  className={idx % 2 ? "bg-purple-25" : "bg-white"}
+                >
+                  <td className="px-6 py-3">
+                    {q.question.length > 40
+                      ? q.question.slice(0, 40) + "..."
+                      : q.question}
+                  </td>
+                  <td className="px-6 py-3">{q.skipRate}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
