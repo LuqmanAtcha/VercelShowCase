@@ -37,7 +37,7 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
 }) => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>([]);
-  // eslint-disable-next-line
+  // eslint-disable-next-line 
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
