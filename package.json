@@ -2,7 +2,7 @@
   "name": "sbna-gameshow-form",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://ksmasoun.github.io/sbna-gameshow-form/",
+  "homepage": ".",
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/user-event": "^13.5.0",
