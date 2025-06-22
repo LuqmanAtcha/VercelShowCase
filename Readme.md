@@ -1,7 +1,7 @@
 # GameShow (Sankalp - New UI Branch)
 
 Welcome to the **SBNA Game Show** project
-This branch focuses on the updated UI design.
+This branch focuses on the updated UI design. a
 
 ### ⚙️ Setup Instructions
 
