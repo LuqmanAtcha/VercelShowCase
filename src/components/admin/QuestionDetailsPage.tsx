@@ -24,6 +24,7 @@ const QuestionDetailPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<"frequency" | "length" | "alphabetical">("frequency");
   const [updatingAnswers, setUpdatingAnswers] = useState<Set<string>>(new Set());
   const [updateError, setUpdateError] = useState<string>("");
+  const [toast, setToast] = useState<{ id: number; message: string } | null>(null);
 
   const navigate = useNavigate();
 
@@ -65,6 +66,12 @@ const QuestionDetailPage: React.FC = () => {
     fetchData();
   }, [id, navigate]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const handleUpdateAnswerCorrectness = async (answerText: string, isCorrect: boolean) => {
     if (!question) return;
     setUpdatingAnswers(prev => new Set(prev).add(answerText));
@@ -74,12 +81,19 @@ const QuestionDetailPage: React.FC = () => {
       if (answerIndex === undefined || answerIndex === -1) throw new Error("Answer not found in question");
       const updatedQuestion: Question = {
         ...question,
-        answers: question.answers!.map((answer, index) =>
-          index === answerIndex ? { ...answer, isCorrect } : answer
-        )
+        answers: question.answers!.map((ans, index) => {
+          if (index !== answerIndex) return ans;
+          if (!isCorrect) {
+            return { ...ans, isCorrect: false, rank: 0, score: 0 };
+          }
+          return { ...ans, isCorrect: true };
+        })
       };
       await updateQuestionWithAnswers(updatedQuestion);
       setQuestion(updatedQuestion);
+      if (!isCorrect) {
+        setToast({ id: Date.now(), message: `Reset rank & score for "${answerText}"` });
+      }
     } catch (error: any) {
       setUpdateError(`Failed to update answer: ${error.message}`);
     } finally {
@@ -258,6 +272,29 @@ const QuestionDetailPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
       <div className="p-6 space-y-6">
+        {/* Toast */}
+        {toast && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-5 py-4 rounded-lg shadow-lg flex items-start gap-3 animate-fade-in"
+          >
+            <svg className="w-6 h-6 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+            </svg>
+            <div className="text-sm font-medium">{toast.message}</div>
+            <button
+              onClick={() => setToast(null)}
+              className="ml-2 text-gray-300 hover:text-white"
+              title="Dismiss"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
